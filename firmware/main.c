@@ -5,8 +5,14 @@
  *
  * Reads all sensors every 30 seconds, checks CO thresholds,
  * and publishes JSON data to a local MQTT broker.
+ *
+ * The SGP30 requires a measure_iaq call every 1 second for its
+ * on-chip baseline algorithm to work. The main loop runs at 1 Hz,
+ * ticking the SGP30 each iteration and doing a full publish cycle
+ * every READ_INTERVAL_MS / 1000 iterations.
  */
 
+#include <ti/drivers/Board.h>
 #include <ti/drivers/I2C.h>
 #include <ti/drivers/ADC.h>
 #include <ti/drivers/GPIO.h>
@@ -45,10 +51,25 @@ void mainThread(void *arg0)
 {
     (void)arg0;
 
+    /* Board_init must be first — initializes driver tables and power */
+    Board_init();
+
     /* Initialize drivers */
-    I2C_Handle i2c     = I2C_open(Board_I2C0, NULL);
-    ADC_Handle adc_co  = ADC_open(Board_ADC_CH2, NULL);
+    I2C_Handle i2c = I2C_open(Board_I2C0, NULL);
+    if (i2c == NULL) {
+        while (1) {}  /* Fatal: I2C unavailable */
+    }
+
+    ADC_Handle adc_co = ADC_open(Board_ADC_CH2, NULL);
+    if (adc_co == NULL) {
+        while (1) {}  /* Fatal: CO ADC unavailable */
+    }
+
     ADC_Handle adc_mic = ADC_open(Board_ADC_CH3, NULL);
+    if (adc_mic == NULL) {
+        while (1) {}  /* Fatal: Mic ADC unavailable */
+    }
+
     GPIO_init();
 
     /* Initialize sensors */
@@ -61,51 +82,73 @@ void mainThread(void *arg0)
     COAlarm_init(CO_ALARM_PPM, CO_CLEAR_PPM);
 
     /* Connect to Wi-Fi & MQTT broker */
-    WiFi_connect(WIFI_SSID, WIFI_PASS);
-    MQTT_connect(MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID);
+    if (!WiFi_connect(WIFI_SSID, WIFI_PASS)) {
+        while (1) {}  /* Fatal: no network */
+    }
+    if (!MQTT_connect(MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID)) {
+        while (1) {}  /* Fatal: no MQTT */
+    }
 
-    EnvData_t data;
+    int publish_counter = 0;
+    int publish_interval = READ_INTERVAL_MS / 1000;
 
     while (1) {
-        /* --- Read all sensors --- */
-        BME280_read(i2c, &data.temperature,
-                    &data.humidity, &data.pressure);
-        SGP30_read(i2c, &data.eco2, &data.tvoc);
-        BH1750_read(i2c, &data.lux);
-        BMV080_read(i2c, &data.pm1, &data.pm25, &data.pm10);
-        data.co_ppm   = MQ7_readPPM(adc_co);
-        data.noise_db = MIC_readDB(adc_mic);
+        /*
+         * SGP30 baseline algorithm requires measure_iaq every 1 second.
+         * Tick it on every loop iteration (1 Hz).
+         */
+        SGP30_tick(i2c);
 
-        /* --- CO safety check (with hysteresis) --- */
-        data.co_alarm = COAlarm_check(data.co_ppm);
+        if (++publish_counter >= publish_interval) {
+            publish_counter = 0;
 
-        /* --- Build JSON payload --- */
-        char payload[512];
-        snprintf(payload, sizeof(payload),
-            "{"
-            "\"temp\":%.1f,"
-            "\"hum\":%.1f,"
-            "\"press\":%.1f,"
-            "\"eco2\":%u,"
-            "\"tvoc\":%u,"
-            "\"co_ppm\":%.1f,"
-            "\"lux\":%u,"
-            "\"pm1\":%.1f,"
-            "\"pm25\":%.1f,"
-            "\"pm10\":%.1f,"
-            "\"noise_db\":%.1f,"
-            "\"co_alert\":%s"
-            "}",
-            data.temperature, data.humidity,
-            data.pressure, data.eco2, data.tvoc,
-            data.co_ppm, data.lux,
-            data.pm1, data.pm25, data.pm10,
-            data.noise_db,
-            data.co_alarm ? "true" : "false");
+            EnvData_t data = {0};
 
-        /* --- Publish --- */
-        MQTT_publish(MQTT_TOPIC, payload);
+            /* --- Read all sensors --- */
+            BME280_read(i2c, &data.temperature,
+                        &data.humidity, &data.pressure);
+            SGP30_read(&data.eco2, &data.tvoc);
+            BH1750_read(i2c, &data.lux);
+            BMV080_read(i2c, &data.pm1, &data.pm25, &data.pm10);
+            data.co_ppm   = MQ7_readPPM(adc_co);
+            data.noise_db = MIC_readDB(adc_mic);
 
-        sleep(READ_INTERVAL_MS / 1000);
+            /* --- CO safety check (with hysteresis) --- */
+            data.co_alarm = COAlarm_check(data.co_ppm);
+
+            /* --- Build JSON payload --- */
+            char payload[512];
+            int len = snprintf(payload, sizeof(payload),
+                "{"
+                "\"temp\":%.1f,"
+                "\"hum\":%.1f,"
+                "\"press\":%.1f,"
+                "\"eco2\":%u,"
+                "\"tvoc\":%u,"
+                "\"co_ppm\":%.1f,"
+                "\"lux\":%u,"
+                "\"pm1\":%.1f,"
+                "\"pm25\":%.1f,"
+                "\"pm10\":%.1f,"
+                "\"noise_db\":%.1f,"
+                "\"co_alert\":%s"
+                "}",
+                data.temperature, data.humidity,
+                data.pressure, (unsigned)data.eco2, (unsigned)data.tvoc,
+                data.co_ppm, (unsigned)data.lux,
+                data.pm1, data.pm25, data.pm10,
+                data.noise_db,
+                data.co_alarm ? "true" : "false");
+
+            /* --- Publish (skip if truncated) --- */
+            if (len > 0 && len < (int)sizeof(payload)) {
+                if (!MQTT_publish(MQTT_TOPIC, payload)) {
+                    /* Attempt reconnect on publish failure */
+                    MQTT_reconnect();
+                }
+            }
+        }
+
+        sleep(1);
     }
 }
