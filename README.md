@@ -7,7 +7,7 @@ A CC3220SF-based indoor environment monitoring system that tracks temperature, h
 | Sensor       | Measures                                   | Interface                    |
 | ------------ | ------------------------------------------ | ---------------------------- |
 | BME280       | Temperature, humidity, barometric pressure | I2C `0x76`                   |
-| CCS811       | eCO2, TVOC (indoor air quality)            | I2C `0x5A`                   |
+| SGP30        | eCO2, TVOC (indoor air quality)            | I2C `0x58`                   |
 | MQ-7         | Carbon monoxide (20-2000 ppm)              | ADC (via voltage divider)    |
 | BH1750       | Ambient light (1-65535 lux)                | I2C `0x23`                   |
 | Piezo Buzzer | CO alarm output                            | GPIO (via 2N2222 transistor) |
@@ -18,7 +18,7 @@ A CC3220SF-based indoor environment monitoring system that tracks temperature, h
 CC3220SF LaunchPad          Raspberry Pi (LAN)
 ┌─────────────────┐         ┌──────────────────────┐
 │  BME280 ─┐      │  MQTT   │  Mosquitto (broker)  │
-│  CCS811 ─┤ I2C  │────────>│  Telegraf → InfluxDB │
+│  SGP30  ─┤ I2C  │────────>│  Telegraf → InfluxDB │
 │  BH1750 ─┘      │  JSON   │  Grafana (dashboard) │
 │  MQ-7 ── ADC    │         └──────────────────────┘
 │  Buzzer ─ GPIO  │
@@ -52,13 +52,11 @@ Render parts in OpenSCAD by setting `RENDER_PART` to `"base"`, `"lid"`, or `"bot
 
 See `project.html` for full part descriptions, wiring details, and estimated costs.
 
-> **Note:** The CCS811 has been discontinued by AMS. The [Adafruit SGP30](https://www.adafruit.com/product/3709) ($17.50, in stock) is the recommended drop-in replacement for eCO2/TVOC sensing over I2C.
-
 | Component                                                                                                   | Description                                          | Price  | Source                                                                                                                                                                                                                                                                                                |
 | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [CC3220SF-LAUNCHXL](https://www.digikey.com/en/products/detail/texas-instruments/CC3220SF-LAUNCHXL/6660400) | TI SimpleLink Wi-Fi LaunchPad (MCU)                  | ~$70   | [DigiKey](https://www.digikey.com/en/products/detail/texas-instruments/CC3220SF-LAUNCHXL/6660400), [Mouser](https://www.mouser.com/ProductDetail/Texas-Instruments/CC3220SF-LAUNCHXL?qs=KuuZdrM3jLxt7xOTmPb+qA%3D%3D), [Arrow](https://www.arrow.com/en/products/cc3220sf-launchxl/texas-instruments) |
 | [BME280](https://www.adafruit.com/product/2652)                                                             | Temp/humidity/pressure sensor breakout (I2C)         | $14.95 | [Adafruit](https://www.adafruit.com/product/2652) (in stock), [SparkFun](https://www.sparkfun.com/sparkfun-atmospheric-sensor-breakout-bme280.html)                                                                                                                                                   |
-| [SGP30](https://www.adafruit.com/product/3709)                                                              | eCO2/TVOC air quality sensor (I2C) — replaces CCS811 | $17.50 | [Adafruit](https://www.adafruit.com/product/3709) (in stock), [Amazon](https://www.amazon.com/Adafruit-SGP30-Quality-Sensor-Breakout/dp/B07L5YN11R)                                                                                                                                                   |
+| [SGP30](https://www.adafruit.com/product/3709)                                                              | eCO2/TVOC air quality sensor (I2C)                   | $17.50 | [Adafruit](https://www.adafruit.com/product/3709) (in stock), [Amazon](https://www.amazon.com/Adafruit-SGP30-Quality-Sensor-Breakout/dp/B07L5YN11R)                                                                                                                                                   |
 | [MQ-7](https://www.sparkfun.com/carbon-monoxide-sensor-mq-7.html)                                           | Carbon monoxide sensor module (analog)               | ~$7.50 | [SparkFun SEN-09403](https://www.sparkfun.com/carbon-monoxide-sensor-mq-7.html)                                                                                                                                                                                                                       |
 | [BH1750](https://www.adafruit.com/product/4681)                                                             | Ambient light sensor breakout (I2C)                  | $4.50  | [Adafruit](https://www.adafruit.com/product/4681) (in stock), [Mouser](https://www.mouser.com/new/adafruit/adafruit-bh1750-ambient-light-sensor/)                                                                                                                                                     |
 | [Piezo Buzzer](https://www.adafruit.com/product/1536)                                                       | Active buzzer, 5V, breadboard-friendly               | $0.95  | [Adafruit](https://www.adafruit.com/product/1536) (in stock)                                                                                                                                                                                                                                          |
