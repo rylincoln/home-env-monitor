@@ -4,7 +4,7 @@
 // ============================================================
 //
 //  Two-part snap-fit enclosure:
-//    - BASE: holds CC3220SF LaunchPad, BME280, CCS811, BH1750,
+//    - BASE: holds CC3220SF LaunchPad, BME280, SGP30, BH1750,
 //            MQ-7, and buzzer on M2.5 standoffs
 //    - LID:  ventilation grille, light sensor window, buzzer
 //            sound port, and snap clip receivers
@@ -69,7 +69,7 @@ bme_hole_dx  = 8;   bme_hole_dy = 0;  // Single-axis mounting
 bme_ox       = 92;  bme_oy = 10;      // Position in enclosure
 bme_standoff = 4;
 
-// CCS811
+// SGP30
 ccs_w        = 22;  ccs_d = 22;
 ccs_hole_dx  = 17;  ccs_hole_dy = 17;
 ccs_ox       = 110; ccs_oy = 10;
@@ -224,7 +224,7 @@ module base() {
                     standoff(bme_standoff, standoff_od, m25_insert_d, m25_insert_h);
             }
 
-            // === CCS811 STANDOFFS ===
+            // === SGP30 STANDOFFS ===
             for (dx = [0, ccs_hole_dx], dy = [0, ccs_hole_dy]) {
                 translate([wall + ccs_ox + dx,
                            wall + ccs_oy + dy,

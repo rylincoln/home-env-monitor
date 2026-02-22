@@ -456,7 +456,7 @@
   <div class="badge-row">
     <span class="badge cyan">CC3220SF</span>
     <span class="badge">BME280</span>
-    <span class="badge">CCS811</span>
+    <span class="badge">SGP30</span>
     <span class="badge purple">MQ-7 CO</span>
     <span class="badge">BH1750</span>
     <span class="badge">Mosquitto</span>
@@ -489,7 +489,7 @@
     </div>
     <div class="arch-card">
       <div class="icon">🌬️</div>
-      <h4>CCS811</h4>
+      <h4>SGP30</h4>
       <p>Equivalent CO₂ (eCO₂) and TVOC for indoor air quality via I²C.</p>
     </div>
     <div class="arch-card">
@@ -520,7 +520,7 @@
       <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
       <div class="flow-content">
         <h4>1 · Sensor Acquisition</h4>
-        <p>BME280, CCS811, and BH1750 are polled over I²C. MQ-7 analog voltage is read via the CC3220's 12-bit ADC (channel 2).</p>
+        <p>BME280, SGP30, and BH1750 are polled over I²C. MQ-7 analog voltage is read via the CC3220's 12-bit ADC (channel 2).</p>
       </div>
     </div>
     <div class="flow-step">
@@ -577,10 +577,10 @@
         <td>$4</td>
       </tr>
       <tr>
-        <td><span class="part-name">CCS811</span><br><span class="part-desc">AMS Air Quality Sensor</span></td>
-        <td>eCO₂ (400–8192 ppm), TVOC (0–1187 ppb). Needs 48h burn-in.</td>
-        <td><span class="interface-badge">I²C 0x5A</span></td>
-        <td>$8</td>
+        <td><span class="part-name">SGP30</span><br><span class="part-desc">Sensirion Air Quality Sensor</span></td>
+        <td>eCO₂ (400–60000 ppm), TVOC (0–60000 ppb). 15s initialization.</td>
+        <td><span class="interface-badge">I²C 0x58</span></td>
+        <td>$18</td>
       </tr>
       <tr>
         <td><span class="part-name">MQ-7</span><br><span class="part-desc">Carbon Monoxide Sensor Module</span></td>
@@ -629,7 +629,7 @@
 
   <div class="callout">
     <span class="callout-icon">💡</span>
-    <div><strong>Tip:</strong> Buy CCS811 + BME280 combo breakout boards (e.g., SparkFun Environmental Combo) to simplify wiring — they share one I²C bus and include pull-ups.</div>
+    <div><strong>Tip:</strong> Both the SGP30 and BME280 share the I²C bus. Buy breakout boards with built-in pull-ups (e.g., Adafruit STEMMA QT versions) to simplify wiring.</div>
   </div>
 </div>
 
@@ -643,12 +643,12 @@
     <div class="pin-row">
       <span class="pin-id">P01</span>
       <span class="pin-label">I²C SCL</span>
-      <span class="pin-sensor">→ BME280, CCS811, BH1750</span>
+      <span class="pin-sensor">→ BME280, SGP30, BH1750</span>
     </div>
     <div class="pin-row">
       <span class="pin-id">P02</span>
       <span class="pin-label">I²C SDA</span>
-      <span class="pin-sensor">→ BME280, CCS811, BH1750</span>
+      <span class="pin-sensor">→ BME280, SGP30, BH1750</span>
     </div>
     <div class="pin-row">
       <span class="pin-id">P59</span>
@@ -663,7 +663,7 @@
     <div class="pin-row">
       <span class="pin-id">3V3</span>
       <span class="pin-label">3.3V Rail</span>
-      <span class="pin-sensor">→ BME280, CCS811, BH1750 VCC</span>
+      <span class="pin-sensor">→ BME280, SGP30, BH1750 VCC</span>
     </div>
     <div class="pin-row">
       <span class="pin-id">5V</span>
@@ -706,11 +706,11 @@
       <line x1="110" y1="200" x2="110" y2="115" stroke="#4ade80" stroke-width="1.5"/>
       <circle cx="110" cy="115" r="3" fill="#4ade80"/>
 
-      <!-- CCS811 -->
+      <!-- SGP30 -->
       <rect x="30" y="310" width="160" height="70" rx="8" fill="#1c222b" stroke="#4ade80" stroke-width="1.5"/>
-      <text x="110" y="335" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="600">CCS811</text>
+      <text x="110" y="335" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="600">SGP30</text>
       <text x="110" y="352" text-anchor="middle" fill="#8892a4" font-size="8">eCO₂ / TVOC</text>
-      <text x="110" y="368" text-anchor="middle" fill="#566680" font-size="8">I²C Addr: 0x5A</text>
+      <text x="110" y="368" text-anchor="middle" fill="#566680" font-size="8">I²C Addr: 0x58</text>
       <line x1="80" y1="310" x2="80" y2="115" stroke="#4ade80" stroke-width="1.5"/>
       <circle cx="80" cy="115" r="3" fill="#4ade80"/>
 
@@ -781,7 +781,7 @@
     <div class="code-body">env_monitor/
 ├── main.c              <span class="comment">// Entry point, main loop</span>
 ├── sensor_bme280.c/h   <span class="comment">// BME280 I²C driver</span>
-├── sensor_ccs811.c/h   <span class="comment">// CCS811 I²C driver</span>
+├── sensor_sgp30.c/h    <span class="comment">// SGP30 I²C driver</span>
 ├── sensor_bh1750.c/h   <span class="comment">// BH1750 I²C driver</span>
 ├── sensor_mq7.c/h      <span class="comment">// MQ-7 ADC read + ppm conversion</span>
 ├── co_alarm.c/h        <span class="comment">// CO threshold logic + buzzer</span>
@@ -798,7 +798,7 @@
 <span class="preproc">#include</span> <span class="string">&lt;ti/drivers/GPIO.h&gt;</span>
 <span class="preproc">#include</span> <span class="string">"config.h"</span>
 <span class="preproc">#include</span> <span class="string">"sensor_bme280.h"</span>
-<span class="preproc">#include</span> <span class="string">"sensor_ccs811.h"</span>
+<span class="preproc">#include</span> <span class="string">"sensor_sgp30.h"</span>
 <span class="preproc">#include</span> <span class="string">"sensor_bh1750.h"</span>
 <span class="preproc">#include</span> <span class="string">"sensor_mq7.h"</span>
 <span class="preproc">#include</span> <span class="string">"co_alarm.h"</span>
@@ -828,7 +828,7 @@
 
     <span class="comment">// Initialize sensors</span>
     <span class="func">BME280_init</span>(i2c);
-    <span class="func">CCS811_init</span>(i2c);
+    <span class="func">SGP30_init</span>(i2c);
     <span class="func">BH1750_init</span>(i2c);
     <span class="func">MQ7_init</span>(adc);
     <span class="func">COAlarm_init</span>(<span class="define">CO_ALARM_PPM</span>, <span class="define">CO_CLEAR_PPM</span>);
@@ -843,7 +843,7 @@
         <span class="comment">// --- Read all sensors ---</span>
         <span class="func">BME280_read</span>(i2c, &amp;data.temperature,
                     &amp;data.humidity, &amp;data.pressure);
-        <span class="func">CCS811_read</span>(i2c, &amp;data.eco2, &amp;data.tvoc);
+        <span class="func">SGP30_read</span>(i2c, &amp;data.eco2, &amp;data.tvoc);
         <span class="func">BH1750_read</span>(i2c, &amp;data.lux);
         data.co_ppm = <span class="func">MQ7_readPPM</span>(adc);
 
@@ -1223,7 +1223,7 @@
     <div class="arch-card">
       <div class="icon">🌀</div>
       <h4>Ventilation Grilles</h4>
-      <p>Louvered slits on the lid above the sensor bay allow natural airflow to the BME280, CCS811, and MQ-7.</p>
+      <p>Louvered slits on the lid above the sensor bay allow natural airflow to the BME280, SGP30, and MQ-7.</p>
     </div>
     <div class="arch-card">
       <div class="icon">🔗</div>
@@ -1272,9 +1272,9 @@
       <circle cx="433" cy="95" r="3" fill="none" stroke="#4ade80" stroke-width="0.8"/>
       <circle cx="497" cy="95" r="3" fill="none" stroke="#4ade80" stroke-width="0.8"/>
 
-      <!-- CCS811 -->
+      <!-- SGP30 -->
       <rect x="530" y="85" width="85" height="55" rx="5" fill="rgba(74,222,128,0.06)" stroke="#4ade80" stroke-width="1.5"/>
-      <text x="572" y="108" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="600">CCS811</text>
+      <text x="572" y="108" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="600">SGP30</text>
       <text x="572" y="125" text-anchor="middle" fill="#566680" font-size="7">22 × 22 mm</text>
       <circle cx="538" cy="95" r="3" fill="none" stroke="#4ade80" stroke-width="0.8"/>
       <circle cx="607" cy="95" r="3" fill="none" stroke="#4ade80" stroke-width="0.8"/>
@@ -1424,7 +1424,7 @@
       <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
       <div class="flow-content">
         <h4>1 · Install Heat-Set Inserts</h4>
-        <p>Using a soldering iron at ~220°C with a tapered tip, press 10 brass M2.5 inserts into the standoff posts on the base: 4 for the LaunchPad, 2 each for BME280/CCS811/BH1750. The MQ-7 mounts on the two tall (8mm) posts.</p>
+        <p>Using a soldering iron at ~220°C with a tapered tip, press 10 brass M2.5 inserts into the standoff posts on the base: 4 for the LaunchPad, 2 each for BME280/SGP30/BH1750. The MQ-7 mounts on the two tall (8mm) posts.</p>
       </div>
     </div>
     <div class="flow-step">
@@ -1438,7 +1438,7 @@
       <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
       <div class="flow-content">
         <h4>3 · Mount Sensors</h4>
-        <p>Screw the BME280, CCS811, and BH1750 breakouts onto their standoffs in the sensor bay. Mount the MQ-7 module on the tall standoffs — ensure at least 8mm clearance between the heater can and the base floor.</p>
+        <p>Screw the BME280, SGP30, and BH1750 breakouts onto their standoffs in the sensor bay. Mount the MQ-7 module on the tall standoffs — ensure at least 8mm clearance between the heater can and the base floor.</p>
       </div>
     </div>
     <div class="flow-step">
