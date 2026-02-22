@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC3220 Home Environment Monitor — Project Design</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0f13;
+    --surface: #151a21;
+    --surface2: #1c222b;
+    --border: #2a3140;
+    --text: #e2e8f0;
+    --text-dim: #8892a4;
+    --accent: #22d3ee;
+    --accent2: #a78bfa;
+    --warn: #fb923c;
+    --danger: #f87171;
+    --green: #4ade80;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --serif: 'DM Serif Display', serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* --- HERO --- */
+  .hero {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -40%; left: -20%;
+    width: 80vw; height: 80vw;
+    background: radial-gradient(circle, rgba(34,211,238,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -30%; right: -10%;
+    width: 60vw; height: 60vw;
+    background: radial-gradient(circle, rgba(167,139,250,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hero-label {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.2s;
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.4rem, 6vw, 4.5rem);
+    line-height: 1.15;
+    color: #fff;
+    max-width: 800px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.4s;
+  }
+
+  .hero h1 span { color: var(--accent); }
+
+  .hero-sub {
+    font-size: 1.15rem;
+    color: var(--text-dim);
+    max-width: 600px;
+    margin-top: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.6s;
+  }
+
+  .badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.8s;
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: var(--surface);
+  }
+
+  .badge.cyan { border-color: rgba(34,211,238,0.3); color: var(--accent); }
+  .badge.purple { border-color: rgba(167,139,250,0.3); color: var(--accent2); }
+
+  /* --- NAV TABS --- */
+  .tabs {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(12,15,19,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    overflow-x: auto;
+    padding: 0 2rem;
+  }
+
+  .tab {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    color: var(--text-dim);
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* --- SECTIONS --- */
+  .section {
+    display: none;
+    padding: 3rem 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .section.active { display: block; }
+
+  .section h2 {
+    font-family: var(--serif);
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+  }
+
+  .section h3 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1.15rem;
+    margin: 2rem 0 0.75rem;
+    color: var(--accent);
+  }
+
+  .section p, .section li {
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .section-intro {
+    color: var(--text-dim);
+    margin-bottom: 2.5rem;
+    font-size: 1rem;
+    max-width: 700px;
+  }
+
+  /* --- BOM TABLE --- */
+  .bom-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.88rem;
+  }
+
+  .bom-table th {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .bom-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(42,49,64,0.5);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  .bom-table tr:hover td { background: var(--surface); }
+
+  .bom-table .part-name { font-weight: 600; color: #fff; }
+  .bom-table .part-desc { color: var(--text-dim); font-size: 0.82rem; }
+  .bom-table .interface-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--accent);
+  }
+
+  /* --- WIRING DIAGRAM SVG --- */
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+
+  .diagram-container svg { max-width: 100%; height: auto; }
+
+  /* --- CODE BLOCKS --- */
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+
+  .code-header .lang { color: var(--accent); }
+
+  .code-body {
+    padding: 1.25rem;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre;
+  }
+
+  .code-body .comment { color: #566680; }
+  .code-body .keyword { color: var(--accent2); }
+  .code-body .string { color: var(--green); }
+  .code-body .func { color: var(--accent); }
+  .code-body .number { color: var(--warn); }
+  .code-body .type { color: var(--warn); }
+  .code-body .define { color: #f472b6; }
+  .code-body .preproc { color: #f472b6; }
+
+  /* --- ARCHITECTURE CARDS --- */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .arch-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .arch-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .arch-card .icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .arch-card h4 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    color: #fff;
+  }
+
+  .arch-card p {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* --- PIN TABLE --- */
+  .pin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+  }
+
+  .pin-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .pin-id {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    background: rgba(34,211,238,0.08);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    min-width: 55px;
+    text-align: center;
+  }
+
+  .pin-label { color: var(--text); font-weight: 500; }
+  .pin-sensor { color: var(--text-dim); font-size: 0.78rem; }
+
+  /* --- FLOW DIAGRAM --- */
+  .flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 2rem 0;
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+  }
+
+  .flow-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 32px;
+  }
+
+  .flow-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--bg);
+    flex-shrink: 0;
+    margin-top: 0.3rem;
+  }
+
+  .flow-connector {
+    width: 2px;
+    flex: 1;
+    min-height: 40px;
+    background: var(--border);
+  }
+
+  .flow-content {
+    padding-bottom: 2rem;
+  }
+
+  .flow-content h4 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.3rem;
+  }
+
+  .flow-content p {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin: 0;
+  }
+
+  /* --- NOTES/CALLOUTS --- */
+  .callout {
+    display: flex;
+    gap: 1rem;
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+  }
+
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.danger { border-left-color: var(--danger); }
+  .callout .callout-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+  /* --- ANIMATIONS --- */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* --- RESPONSIVE --- */
+  @media (max-width: 640px) {
+    .hero { padding: 3rem 1.25rem; }
+    .section { padding: 2rem 1.25rem; }
+    .tabs { padding: 0 1rem; }
+    .bom-table { font-size: 0.78rem; }
+    .bom-table th, .bom-table td { padding: 0.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-label">TI CC3220SF LAUNCHXL Project Design</div>
+  <h1>Home Environment <span>Monitor</span></h1>
+  <p class="hero-sub">A Wi-Fi connected sensor hub that tracks temperature, humidity, air quality, ambient light, and carbon monoxide — reporting live data to a self-hosted Grafana dashboard on a Raspberry Pi.</p>
+  <div class="badge-row">
+    <span class="badge cyan">CC3220SF</span>
+    <span class="badge">BME280</span>
+    <span class="badge">CCS811</span>
+    <span class="badge purple">MQ-7 CO</span>
+    <span class="badge">BH1750</span>
+    <span class="badge">Mosquitto</span>
+    <span class="badge">InfluxDB</span>
+    <span class="badge">Grafana</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs" id="tabs">
+  <button class="tab active" data-tab="overview">Overview</button>
+  <button class="tab" data-tab="bom">Bill of Materials</button>
+  <button class="tab" data-tab="wiring">Wiring &amp; Pins</button>
+  <button class="tab" data-tab="firmware">Firmware</button>
+  <button class="tab" data-tab="cloud">Pi Dashboard</button>
+  <button class="tab" data-tab="safety">CO Safety</button>
+  <button class="tab" data-tab="enclosure">Enclosure</button>
+</div>
+
+<!-- ===== OVERVIEW ===== -->
+<div class="section active" id="overview">
+  <h2>System Architecture</h2>
+  <p class="section-intro">The monitor reads five environmental parameters every 30 seconds and publishes them over Wi-Fi using MQTT to a local Raspberry Pi running Mosquitto, InfluxDB, and Grafana. An onboard buzzer triggers an alarm if CO exceeds safe thresholds.</p>
+
+  <div class="arch-grid">
+    <div class="arch-card">
+      <div class="icon">🌡️</div>
+      <h4>BME280</h4>
+      <p>Temperature, humidity, and barometric pressure via I²C. ±1°C / ±3% RH accuracy.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">🌬️</div>
+      <h4>CCS811</h4>
+      <p>Equivalent CO₂ (eCO₂) and TVOC for indoor air quality via I²C.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">🔴</div>
+      <h4>MQ-7 CO Sensor</h4>
+      <p>Electrochemical carbon monoxide detection. Analog output → CC3220 ADC.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">💡</div>
+      <h4>BH1750</h4>
+      <p>Digital ambient light sensor (1–65535 lux range) via I²C.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">📡</div>
+      <h4>CC3220SF Wi-Fi</h4>
+      <p>Built-in Wi-Fi. Connects to local Mosquitto MQTT broker on the Raspberry Pi.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">🔔</div>
+      <h4>Buzzer Alarm</h4>
+      <p>Piezo buzzer driven by GPIO. Triggers on high CO readings (&gt;50 ppm).</p>
+    </div>
+  </div>
+
+  <h3>Data Flow</h3>
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>1 · Sensor Acquisition</h4>
+        <p>BME280, CCS811, and BH1750 are polled over I²C. MQ-7 analog voltage is read via the CC3220's 12-bit ADC (channel 2).</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>2 · Local Processing</h4>
+        <p>Raw values are converted to engineering units. CO ppm is calculated from ADC voltage using the MQ-7 sensitivity curve. A moving average filter smooths noise.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>3 · Safety Check</h4>
+        <p>If CO &gt; 50 ppm, the buzzer activates and a "CO_ALERT" flag is appended to the MQTT payload. The alert persists until levels drop below 25 ppm (hysteresis).</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>4 · Wi-Fi Transmission</h4>
+        <p>JSON payload is published to the local Mosquitto MQTT broker on the Raspberry Pi every 30 seconds over the LAN.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div></div>
+      <div class="flow-content">
+        <h4>5 · Local Dashboard</h4>
+        <p>Telegraf subscribes to MQTT and writes to InfluxDB. Grafana renders live charts on the Pi's attached display. Optional: Grafana alerting for email/push on CO threshold events.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BOM ===== -->
+<div class="section" id="bom">
+  <h2>Bill of Materials</h2>
+  <p class="section-intro">Everything you need to build this project. Total estimated cost: ~$55–$70 USD (excluding the LaunchPad).</p>
+
+  <table class="bom-table">
+    <thead>
+      <tr><th>Component</th><th>Description</th><th>Interface</th><th>Est. Cost</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="part-name">CC3220SF-LAUNCHXL</span><br><span class="part-desc">TI SimpleLink Wi-Fi LaunchPad</span></td>
+        <td>Main MCU board with Wi-Fi, 12-bit ADC, I²C, UART, GPIO</td>
+        <td>—</td>
+        <td>$30</td>
+      </tr>
+      <tr>
+        <td><span class="part-name">BME280</span><br><span class="part-desc">Bosch Environmental Sensor</span></td>
+        <td>Temp (−40 to +85°C), humidity (0–100%), pressure (300–1100 hPa)</td>
+        <td><span class="interface-badge">I²C 0x76</span></td>
+        <td>$4</td>
+      </tr>
+      <tr>
+        <td><span class="part-name">CCS811</span><br><span class="part-desc">AMS Air Quality Sensor</span></td>
+        <td>eCO₂ (400–8192 ppm), TVOC (0–1187 ppb). Needs 48h burn-in.</td>
+        <td><span class="interface-badge">I²C 0x5A</span></td>
+        <td>$8</td>
+      </tr>
+      <tr>
+        <td><span class="part-name">MQ-7</span><br><span class="part-desc">Carbon Monoxide Sensor Module</span></td>
+        <td>CO detection 20–2000 ppm. Analog output. Requires 5V heater + voltage divider for 3.3V ADC.</td>
+        <td><span class="interface-badge">ADC</span></td>
+        <td>$5</td>
+      </tr>
+      <tr>
+        <td><span class="part-name">BH1750</span><br><span class="part-desc">ROHM Light Sensor</span></td>
+        <td>Digital lux sensor, 1–65535 lux, 16-bit resolution</td>
+        <td><span class="interface-badge">I²C 0x23</span></td>
+        <td>$3</td>
+      </tr>
+      <tr>
+        <td><span class="part-name">Piezo Buzzer</span><br><span class="part-desc">Active, 3.3V compatible</span></td>
+        <td>CO alarm output. Driven via GPIO + NPN transistor (2N2222).</td>
+        <td><span class="interface-badge">GPIO</span></td>
+        <td>$1</td>
+      </tr>
+      <tr>
+        <td><span class="part-name">Logic Level Shifter</span><br><span class="part-desc">4-channel bi-directional</span></td>
+        <td>3.3V ↔ 5V for MQ-7 analog output</td>
+        <td>—</td>
+        <td>$2</td>
+      </tr>
+      <tr>
+        <td><span class="part-name">Breadboard + Jumper Wires</span></td>
+        <td>Half-size breadboard, M-F and M-M jumper wires</td>
+        <td>—</td>
+        <td>$5</td>
+      </tr>
+      <tr>
+        <td><span class="part-name">10kΩ + 20kΩ Resistors</span></td>
+        <td>Voltage divider for MQ-7 analog output (5V → 3.3V safe range)</td>
+        <td>—</td>
+        <td>$1</td>
+      </tr>
+      <tr>
+        <td><span class="part-name">2N2222 NPN Transistor</span></td>
+        <td>Buzzer driver (GPIO can't source enough current directly)</td>
+        <td>—</td>
+        <td>$0.50</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <span class="callout-icon">💡</span>
+    <div><strong>Tip:</strong> Buy CCS811 + BME280 combo breakout boards (e.g., SparkFun Environmental Combo) to simplify wiring — they share one I²C bus and include pull-ups.</div>
+  </div>
+</div>
+
+<!-- ===== WIRING ===== -->
+<div class="section" id="wiring">
+  <h2>Wiring &amp; Pin Assignments</h2>
+  <p class="section-intro">All I²C sensors share the same SDA/SCL bus. The MQ-7 uses an ADC input with a voltage divider. The buzzer is driven through a transistor on a GPIO pin.</p>
+
+  <h3>CC3220SF Pin Mapping</h3>
+  <div class="pin-grid">
+    <div class="pin-row">
+      <span class="pin-id">P01</span>
+      <span class="pin-label">I²C SCL</span>
+      <span class="pin-sensor">→ BME280, CCS811, BH1750</span>
+    </div>
+    <div class="pin-row">
+      <span class="pin-id">P02</span>
+      <span class="pin-label">I²C SDA</span>
+      <span class="pin-sensor">→ BME280, CCS811, BH1750</span>
+    </div>
+    <div class="pin-row">
+      <span class="pin-id">P59</span>
+      <span class="pin-label">ADC CH2</span>
+      <span class="pin-sensor">→ MQ-7 Analog (via divider)</span>
+    </div>
+    <div class="pin-row">
+      <span class="pin-id">P64</span>
+      <span class="pin-label">GPIO OUT</span>
+      <span class="pin-sensor">→ Buzzer (via 2N2222)</span>
+    </div>
+    <div class="pin-row">
+      <span class="pin-id">3V3</span>
+      <span class="pin-label">3.3V Rail</span>
+      <span class="pin-sensor">→ BME280, CCS811, BH1750 VCC</span>
+    </div>
+    <div class="pin-row">
+      <span class="pin-id">5V</span>
+      <span class="pin-label">5V Rail</span>
+      <span class="pin-sensor">→ MQ-7 Heater VCC</span>
+    </div>
+    <div class="pin-row">
+      <span class="pin-id">GND</span>
+      <span class="pin-label">Ground</span>
+      <span class="pin-sensor">→ Common ground (all)</span>
+    </div>
+  </div>
+
+  <h3>Wiring Diagram</h3>
+  <div class="diagram-container">
+    <svg viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono, monospace">
+      <!-- CC3220 Board -->
+      <rect x="340" y="30" width="220" height="140" rx="10" fill="#1c222b" stroke="#22d3ee" stroke-width="2"/>
+      <text x="450" y="60" text-anchor="middle" fill="#22d3ee" font-size="13" font-weight="600">CC3220SF</text>
+      <text x="450" y="78" text-anchor="middle" fill="#8892a4" font-size="9">LAUNCHXL</text>
+      <!-- Board pins labels -->
+      <text x="355" y="105" fill="#4ade80" font-size="8">P01 SCL</text>
+      <text x="355" y="120" fill="#4ade80" font-size="8">P02 SDA</text>
+      <text x="355" y="135" fill="#fb923c" font-size="8">P59 ADC2</text>
+      <text x="355" y="150" fill="#a78bfa" font-size="8">P64 GPIO</text>
+      <text x="490" y="105" fill="#8892a4" font-size="8">3V3</text>
+      <text x="490" y="120" fill="#8892a4" font-size="8">5V</text>
+      <text x="490" y="135" fill="#8892a4" font-size="8">GND</text>
+
+      <!-- ====== I2C BUS LINE ====== -->
+      <line x1="340" y1="100" x2="140" y2="100" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <line x1="340" y1="115" x2="140" y2="115" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <text x="240" y="92" text-anchor="middle" fill="#4ade80" font-size="8">I²C BUS</text>
+
+      <!-- BME280 -->
+      <rect x="30" y="200" width="160" height="70" rx="8" fill="#1c222b" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="110" y="225" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="600">BME280</text>
+      <text x="110" y="242" text-anchor="middle" fill="#8892a4" font-size="8">Temp / Hum / Press</text>
+      <text x="110" y="258" text-anchor="middle" fill="#566680" font-size="8">I²C Addr: 0x76</text>
+      <line x1="110" y1="200" x2="110" y2="115" stroke="#4ade80" stroke-width="1.5"/>
+      <circle cx="110" cy="115" r="3" fill="#4ade80"/>
+
+      <!-- CCS811 -->
+      <rect x="30" y="310" width="160" height="70" rx="8" fill="#1c222b" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="110" y="335" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="600">CCS811</text>
+      <text x="110" y="352" text-anchor="middle" fill="#8892a4" font-size="8">eCO₂ / TVOC</text>
+      <text x="110" y="368" text-anchor="middle" fill="#566680" font-size="8">I²C Addr: 0x5A</text>
+      <line x1="80" y1="310" x2="80" y2="115" stroke="#4ade80" stroke-width="1.5"/>
+      <circle cx="80" cy="115" r="3" fill="#4ade80"/>
+
+      <!-- BH1750 -->
+      <rect x="30" y="420" width="160" height="70" rx="8" fill="#1c222b" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="110" y="445" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="600">BH1750</text>
+      <text x="110" y="462" text-anchor="middle" fill="#8892a4" font-size="8">Ambient Light (lux)</text>
+      <text x="110" y="478" text-anchor="middle" fill="#566680" font-size="8">I²C Addr: 0x23</text>
+      <line x1="140" y1="420" x2="140" y2="115" stroke="#4ade80" stroke-width="1.5"/>
+      <circle cx="140" cy="115" r="3" fill="#4ade80"/>
+
+      <!-- MQ-7 -->
+      <rect x="680" y="200" width="170" height="90" rx="8" fill="#1c222b" stroke="#fb923c" stroke-width="1.5"/>
+      <text x="765" y="228" text-anchor="middle" fill="#fb923c" font-size="11" font-weight="600">MQ-7</text>
+      <text x="765" y="245" text-anchor="middle" fill="#8892a4" font-size="8">Carbon Monoxide</text>
+      <text x="765" y="262" text-anchor="middle" fill="#566680" font-size="8">Analog Out → V-Divider</text>
+      <text x="765" y="278" text-anchor="middle" fill="#566680" font-size="8">5V Heater</text>
+      <!-- V-divider box -->
+      <rect x="600" y="220" width="60" height="35" rx="4" fill="#2a3140" stroke="#fb923c" stroke-width="1"/>
+      <text x="630" y="234" text-anchor="middle" fill="#fb923c" font-size="7">V-DIV</text>
+      <text x="630" y="247" text-anchor="middle" fill="#566680" font-size="7">10k/20k</text>
+      <line x1="680" y1="240" x2="660" y2="240" stroke="#fb923c" stroke-width="1.5"/>
+      <line x1="600" y1="240" x2="560" y2="240" stroke="#fb923c" stroke-width="1.5"/>
+      <line x1="560" y1="240" x2="560" y2="130" stroke="#fb923c" stroke-width="1.5"/>
+      <line x1="560" y1="130" x2="420" y2="130" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <circle cx="420" cy="130" r="3" fill="#fb923c"/>
+      <text x="490" y="127" text-anchor="middle" fill="#fb923c" font-size="7">ADC CH2</text>
+
+      <!-- Buzzer -->
+      <rect x="680" y="350" width="170" height="70" rx="8" fill="#1c222b" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="765" y="375" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="600">🔔 BUZZER</text>
+      <text x="765" y="395" text-anchor="middle" fill="#8892a4" font-size="8">CO Alarm (via 2N2222)</text>
+      <text x="765" y="408" text-anchor="middle" fill="#566680" font-size="8">Active Piezo</text>
+      <!-- Transistor box -->
+      <rect x="600" y="360" width="60" height="35" rx="4" fill="#2a3140" stroke="#a78bfa" stroke-width="1"/>
+      <text x="630" y="374" text-anchor="middle" fill="#a78bfa" font-size="7">2N2222</text>
+      <text x="630" y="387" text-anchor="middle" fill="#566680" font-size="7">NPN</text>
+      <line x1="680" y1="378" x2="660" y2="378" stroke="#a78bfa" stroke-width="1.5"/>
+      <line x1="600" y1="378" x2="570" y2="378" stroke="#a78bfa" stroke-width="1.5"/>
+      <line x1="570" y1="378" x2="570" y2="145" stroke="#a78bfa" stroke-width="1.5"/>
+      <line x1="570" y1="145" x2="425" y2="145" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <circle cx="425" cy="145" r="3" fill="#a78bfa"/>
+      <text x="497" y="142" text-anchor="middle" fill="#a78bfa" font-size="7">GPIO P64</text>
+
+      <!-- Power Rails -->
+      <rect x="340" y="460" width="220" height="40" rx="6" fill="#1c222b" stroke="#2a3140" stroke-width="1"/>
+      <text x="370" y="483" fill="#f87171" font-size="9" font-weight="600">3V3</text>
+      <text x="420" y="483" fill="#fb923c" font-size="9" font-weight="600">5V</text>
+      <text x="460" y="483" fill="#8892a4" font-size="9" font-weight="600">GND</text>
+      <text x="520" y="483" fill="#566680" font-size="8">Power Rails</text>
+    </svg>
+  </div>
+
+  <div class="callout warn">
+    <span class="callout-icon">⚡</span>
+    <div><strong>Important:</strong> The MQ-7 heater runs on 5V but its analog output can exceed 3.3V. You <em>must</em> use a voltage divider (10kΩ + 20kΩ) to bring the signal into the CC3220's safe ADC range (0–1.4V). Never connect 5V directly to a CC3220 GPIO or ADC pin.</div>
+  </div>
+</div>
+
+<!-- ===== FIRMWARE ===== -->
+<div class="section" id="firmware">
+  <h2>Firmware</h2>
+  <p class="section-intro">Written in C using TI's SimpleLink SDK (CCS or IAR). The main loop reads all sensors, checks CO thresholds, and publishes data over MQTT.</p>
+
+  <h3>Project Structure</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">project tree</span></div>
+    <div class="code-body">env_monitor/
+├── main.c              <span class="comment">// Entry point, main loop</span>
+├── sensor_bme280.c/h   <span class="comment">// BME280 I²C driver</span>
+├── sensor_ccs811.c/h   <span class="comment">// CCS811 I²C driver</span>
+├── sensor_bh1750.c/h   <span class="comment">// BH1750 I²C driver</span>
+├── sensor_mq7.c/h      <span class="comment">// MQ-7 ADC read + ppm conversion</span>
+├── co_alarm.c/h        <span class="comment">// CO threshold logic + buzzer</span>
+├── wifi_mqtt.c/h       <span class="comment">// Wi-Fi connect + MQTT publish</span>
+├── config.h            <span class="comment">// SSID, password, MQTT broker</span>
+└── Board.h             <span class="comment">// Pin definitions</span></div>
+  </div>
+
+  <h3>Main Application Loop</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">C — main.c</span><span>CC3220SF SimpleLink SDK</span></div>
+    <div class="code-body"><span class="preproc">#include</span> <span class="string">&lt;ti/drivers/I2C.h&gt;</span>
+<span class="preproc">#include</span> <span class="string">&lt;ti/drivers/ADC.h&gt;</span>
+<span class="preproc">#include</span> <span class="string">&lt;ti/drivers/GPIO.h&gt;</span>
+<span class="preproc">#include</span> <span class="string">"config.h"</span>
+<span class="preproc">#include</span> <span class="string">"sensor_bme280.h"</span>
+<span class="preproc">#include</span> <span class="string">"sensor_ccs811.h"</span>
+<span class="preproc">#include</span> <span class="string">"sensor_bh1750.h"</span>
+<span class="preproc">#include</span> <span class="string">"sensor_mq7.h"</span>
+<span class="preproc">#include</span> <span class="string">"co_alarm.h"</span>
+<span class="preproc">#include</span> <span class="string">"wifi_mqtt.h"</span>
+
+<span class="preproc">#define</span> <span class="define">READ_INTERVAL_MS</span>   <span class="number">30000</span>
+<span class="preproc">#define</span> <span class="define">CO_ALARM_PPM</span>       <span class="number">50</span>
+<span class="preproc">#define</span> <span class="define">CO_CLEAR_PPM</span>       <span class="number">25</span>
+
+<span class="keyword">typedef struct</span> {
+    <span class="type">float</span> temperature;    <span class="comment">// °C</span>
+    <span class="type">float</span> humidity;       <span class="comment">// %RH</span>
+    <span class="type">float</span> pressure;       <span class="comment">// hPa</span>
+    <span class="type">uint16_t</span> eco2;       <span class="comment">// ppm</span>
+    <span class="type">uint16_t</span> tvoc;       <span class="comment">// ppb</span>
+    <span class="type">float</span> co_ppm;         <span class="comment">// ppm (MQ-7)</span>
+    <span class="type">uint16_t</span> lux;        <span class="comment">// lux</span>
+    <span class="type">bool</span> co_alarm;        <span class="comment">// true if CO above threshold</span>
+} <span class="type">EnvData_t</span>;
+
+<span class="keyword">void</span> <span class="func">mainThread</span>(<span class="keyword">void</span> *arg0)
+{
+    <span class="comment">// Initialize drivers</span>
+    I2C_Handle i2c = <span class="func">I2C_open</span>(Board_I2C0, <span class="number">NULL</span>);
+    ADC_Handle adc = <span class="func">ADC_open</span>(Board_ADC_CH2, <span class="number">NULL</span>);
+    <span class="func">GPIO_init</span>();
+
+    <span class="comment">// Initialize sensors</span>
+    <span class="func">BME280_init</span>(i2c);
+    <span class="func">CCS811_init</span>(i2c);
+    <span class="func">BH1750_init</span>(i2c);
+    <span class="func">MQ7_init</span>(adc);
+    <span class="func">COAlarm_init</span>(<span class="define">CO_ALARM_PPM</span>, <span class="define">CO_CLEAR_PPM</span>);
+
+    <span class="comment">// Connect to Wi-Fi &amp; MQTT broker</span>
+    <span class="func">WiFi_connect</span>(WIFI_SSID, WIFI_PASS);
+    <span class="func">MQTT_connect</span>(MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID);
+
+    <span class="type">EnvData_t</span> data;
+
+    <span class="keyword">while</span> (<span class="number">1</span>) {
+        <span class="comment">// --- Read all sensors ---</span>
+        <span class="func">BME280_read</span>(i2c, &amp;data.temperature,
+                    &amp;data.humidity, &amp;data.pressure);
+        <span class="func">CCS811_read</span>(i2c, &amp;data.eco2, &amp;data.tvoc);
+        <span class="func">BH1750_read</span>(i2c, &amp;data.lux);
+        data.co_ppm = <span class="func">MQ7_readPPM</span>(adc);
+
+        <span class="comment">// --- CO safety check (with hysteresis) ---</span>
+        data.co_alarm = <span class="func">COAlarm_check</span>(data.co_ppm);
+
+        <span class="comment">// --- Build JSON payload ---</span>
+        <span class="type">char</span> payload[<span class="number">256</span>];
+        <span class="func">snprintf</span>(payload, <span class="keyword">sizeof</span>(payload),
+            <span class="string">"{"</span>
+            <span class="string">"\"temp\":%.1f,"</span>
+            <span class="string">"\"hum\":%.1f,"</span>
+            <span class="string">"\"press\":%.1f,"</span>
+            <span class="string">"\"eco2\":%u,"</span>
+            <span class="string">"\"tvoc\":%u,"</span>
+            <span class="string">"\"co_ppm\":%.1f,"</span>
+            <span class="string">"\"lux\":%u,"</span>
+            <span class="string">"\"co_alert\":%s"</span>
+            <span class="string">"}"</span>,
+            data.temperature, data.humidity,
+            data.pressure, data.eco2, data.tvoc,
+            data.co_ppm, data.lux,
+            data.co_alarm ? <span class="string">"true"</span> : <span class="string">"false"</span>);
+
+        <span class="comment">// --- Publish ---</span>
+        <span class="func">MQTT_publish</span>(<span class="string">"home/env"</span>, payload);
+
+        <span class="func">sleep</span>(READ_INTERVAL_MS / <span class="number">1000</span>);
+    }
+}</div>
+  </div>
+
+  <h3>MQ-7 CO Conversion</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">C — sensor_mq7.c</span><span>ADC → ppm conversion</span></div>
+    <div class="code-body"><span class="comment">// MQ-7 sensitivity curve approximation (log-log scale)</span>
+<span class="comment">// Rs/R0 vs ppm from datasheet. Calibrate R0 in clean air.</span>
+
+<span class="preproc">#define</span> <span class="define">MQ7_R0</span>         <span class="number">10000.0f</span>   <span class="comment">// Sensor resistance in clean air (calibrate!)</span>
+<span class="preproc">#define</span> <span class="define">MQ7_RL</span>         <span class="number">10000.0f</span>   <span class="comment">// Load resistor on module</span>
+<span class="preproc">#define</span> <span class="define">ADC_VREF</span>       <span class="number">1.4f</span>      <span class="comment">// CC3220 ADC reference voltage</span>
+<span class="preproc">#define</span> <span class="define">DIVIDER_RATIO</span>  <span class="number">0.333f</span>    <span class="comment">// 10k/(10k+20k) voltage divider</span>
+
+<span class="type">float</span> <span class="func">MQ7_readPPM</span>(ADC_Handle adc)
+{
+    <span class="type">uint16_t</span> adcRaw;
+    <span class="func">ADC_convert</span>(adc, &amp;adcRaw);
+
+    <span class="comment">// Convert ADC to actual sensor voltage</span>
+    <span class="type">float</span> vAdc = (adcRaw / <span class="number">4095.0f</span>) * <span class="define">ADC_VREF</span>;
+    <span class="type">float</span> vSensor = vAdc / <span class="define">DIVIDER_RATIO</span>;
+
+    <span class="comment">// Calculate sensor resistance</span>
+    <span class="type">float</span> rs = <span class="define">MQ7_RL</span> * (<span class="number">5.0f</span> - vSensor) / vSensor;
+
+    <span class="comment">// Rs/R0 ratio to ppm (power curve from datasheet)</span>
+    <span class="type">float</span> ratio = rs / <span class="define">MQ7_R0</span>;
+    <span class="type">float</span> ppm = <span class="number">98.322f</span> * <span class="func">powf</span>(ratio, <span class="number">-1.458f</span>);
+
+    <span class="keyword">return</span> ppm;
+}</div>
+  </div>
+
+  <h3>config.h</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">C — config.h</span><span>Network credentials</span></div>
+    <div class="code-body"><span class="preproc">#ifndef</span> <span class="define">CONFIG_H</span>
+<span class="preproc">#define</span> <span class="define">CONFIG_H</span>
+
+<span class="comment">// Wi-Fi</span>
+<span class="preproc">#define</span> <span class="define">WIFI_SSID</span>         <span class="string">"YourNetworkName"</span>
+<span class="preproc">#define</span> <span class="define">WIFI_PASS</span>         <span class="string">"YourPassword"</span>
+
+<span class="comment">// MQTT Broker (Mosquitto on Raspberry Pi)</span>
+<span class="preproc">#define</span> <span class="define">MQTT_BROKER</span>       <span class="string">"192.168.1.100"</span>  <span class="comment">// Pi's static IP</span>
+<span class="preproc">#define</span> <span class="define">MQTT_PORT</span>         <span class="number">1883</span>  <span class="comment">// Local, no TLS needed on LAN</span>
+<span class="preproc">#define</span> <span class="define">MQTT_CLIENT_ID</span>    <span class="string">"env_monitor_01"</span>
+<span class="preproc">#define</span> <span class="define">MQTT_USER</span>         <span class="string">"monitor"</span>       <span class="comment">// Optional auth</span>
+<span class="preproc">#define</span> <span class="define">MQTT_PASS</span>         <span class="string">"yourpassword"</span>
+
+<span class="comment">// MQTT Topic</span>
+<span class="preproc">#define</span> <span class="define">MQTT_TOPIC</span>        <span class="string">"home/env"</span>
+
+<span class="preproc">#endif</span></div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">📌</span>
+    <div><strong>SDK Setup:</strong> Import the <code>mqtt_client</code> example from the CC3220SF SimpleLink SDK in Code Composer Studio. It provides the Wi-Fi provisioning and MQTT plumbing — you'll add the sensor drivers and main loop on top.</div>
+  </div>
+</div>
+
+<!-- ===== CLOUD ===== -->
+<div class="section" id="cloud">
+  <h2>Raspberry Pi Dashboard</h2>
+  <p class="section-intro">A fully self-hosted, zero-cloud stack running on a Raspberry Pi. Mosquitto receives MQTT data, Telegraf writes it to InfluxDB, and Grafana renders live dashboards on the Pi's connected display.</p>
+
+  <h3>Stack Overview</h3>
+  <div class="arch-grid">
+    <div class="arch-card">
+      <div class="icon">🦟</div>
+      <h4>Mosquitto</h4>
+      <p>Lightweight MQTT broker. Receives sensor JSON from the CC3220 over LAN.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">📥</div>
+      <h4>Telegraf</h4>
+      <p>Subscribes to MQTT topics, parses JSON, and writes metrics to InfluxDB.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">🗄️</div>
+      <h4>InfluxDB 2.x</h4>
+      <p>Time-series database. Stores all sensor readings with timestamps. Retention policies manage disk usage.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">📊</div>
+      <h4>Grafana</h4>
+      <p>Dashboard with live charts, gauges, and alert rules. Displays on the Pi's HDMI screen in kiosk mode.</p>
+    </div>
+  </div>
+
+  <h3>Recommended Pi Hardware</h3>
+  <div class="pin-grid">
+    <div class="pin-row"><span class="pin-id">Board</span><span class="pin-label">Raspberry Pi 4 (2GB+ RAM)</span></div>
+    <div class="pin-row"><span class="pin-id">Display</span><span class="pin-label">7" Official Pi Touchscreen or any HDMI monitor</span></div>
+    <div class="pin-row"><span class="pin-id">Storage</span><span class="pin-label">32GB+ microSD (or USB SSD for longevity)</span></div>
+    <div class="pin-row"><span class="pin-id">OS</span><span class="pin-label">Raspberry Pi OS Lite (64-bit) + Docker</span></div>
+  </div>
+
+  <h3>1 · Install with Docker Compose</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">YAML</span><span>docker-compose.yml</span></div>
+    <div class="code-body"><span class="keyword">version</span>: <span class="string">"3.8"</span>
+
+<span class="keyword">services</span>:
+  <span class="func">mosquitto</span>:
+    <span class="keyword">image</span>: eclipse-mosquitto:<span class="number">2</span>
+    <span class="keyword">ports</span>:
+      - <span class="string">"1883:1883"</span>
+    <span class="keyword">volumes</span>:
+      - ./mosquitto/config:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+    <span class="keyword">restart</span>: unless-stopped
+
+  <span class="func">influxdb</span>:
+    <span class="keyword">image</span>: influxdb:<span class="number">2</span>
+    <span class="keyword">ports</span>:
+      - <span class="string">"8086:8086"</span>
+    <span class="keyword">volumes</span>:
+      - influxdb-data:/var/lib/influxdb2
+    <span class="keyword">environment</span>:
+      - <span class="define">DOCKER_INFLUXDB_INIT_MODE</span>=setup
+      - <span class="define">DOCKER_INFLUXDB_INIT_USERNAME</span>=<span class="string">admin</span>
+      - <span class="define">DOCKER_INFLUXDB_INIT_PASSWORD</span>=<span class="string">changeme123</span>
+      - <span class="define">DOCKER_INFLUXDB_INIT_ORG</span>=<span class="string">home</span>
+      - <span class="define">DOCKER_INFLUXDB_INIT_BUCKET</span>=<span class="string">environment</span>
+      - <span class="define">DOCKER_INFLUXDB_INIT_RETENTION</span>=<span class="string">90d</span>
+    <span class="keyword">restart</span>: unless-stopped
+
+  <span class="func">telegraf</span>:
+    <span class="keyword">image</span>: telegraf:<span class="number">latest</span>
+    <span class="keyword">volumes</span>:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    <span class="keyword">depends_on</span>:
+      - mosquitto
+      - influxdb
+    <span class="keyword">restart</span>: unless-stopped
+
+  <span class="func">grafana</span>:
+    <span class="keyword">image</span>: grafana/grafana:<span class="number">latest</span>
+    <span class="keyword">ports</span>:
+      - <span class="string">"3000:3000"</span>
+    <span class="keyword">volumes</span>:
+      - grafana-data:/var/lib/grafana
+    <span class="keyword">environment</span>:
+      - <span class="define">GF_SECURITY_ADMIN_PASSWORD</span>=<span class="string">admin</span>
+      - <span class="define">GF_AUTH_ANONYMOUS_ENABLED</span>=<span class="string">true</span>
+    <span class="keyword">depends_on</span>:
+      - influxdb
+    <span class="keyword">restart</span>: unless-stopped
+
+<span class="keyword">volumes</span>:
+  mosquitto-data:
+  influxdb-data:
+  grafana-data:</div>
+  </div>
+
+  <h3>2 · Mosquitto Config</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">conf</span><span>mosquitto/config/mosquitto.conf</span></div>
+    <div class="code-body"><span class="keyword">listener</span> <span class="number">1883</span>
+<span class="keyword">allow_anonymous</span> <span class="string">true</span>
+
+<span class="comment"># For authentication (optional, recommended):</span>
+<span class="comment"># password_file /mosquitto/config/passwd</span>
+<span class="comment"># allow_anonymous false</span>
+
+<span class="keyword">persistence</span> <span class="string">true</span>
+<span class="keyword">persistence_location</span> /mosquitto/data/</div>
+  </div>
+
+  <h3>3 · Telegraf Config</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">TOML</span><span>telegraf/telegraf.conf</span></div>
+    <div class="code-body"><span class="comment"># Subscribe to the CC3220's MQTT topic</span>
+[[<span class="func">inputs.mqtt_consumer</span>]]
+  <span class="keyword">servers</span> = [<span class="string">"tcp://mosquitto:1883"</span>]
+  <span class="keyword">topics</span>  = [<span class="string">"home/env"</span>]
+  <span class="keyword">data_format</span> = <span class="string">"json"</span>
+
+  <span class="comment"># Map JSON keys to InfluxDB fields</span>
+  <span class="keyword">json_string_fields</span> = [<span class="string">"co_alert"</span>]
+  <span class="keyword">tag_keys</span> = []
+  <span class="keyword">name_override</span> = <span class="string">"environment"</span>
+
+<span class="comment"># Write to local InfluxDB</span>
+[[<span class="func">outputs.influxdb_v2</span>]]
+  <span class="keyword">urls</span>         = [<span class="string">"http://influxdb:8086"</span>]
+  <span class="keyword">token</span>        = <span class="string">"&lt;your-influxdb-token&gt;"</span>
+  <span class="keyword">organization</span> = <span class="string">"home"</span>
+  <span class="keyword">bucket</span>       = <span class="string">"environment"</span></div>
+  </div>
+
+  <h3>4 · Bring It Up</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">bash</span><span>Terminal on the Pi</span></div>
+    <div class="code-body"><span class="comment"># Create directory structure</span>
+<span class="func">mkdir</span> -p env-monitor/mosquitto/config env-monitor/telegraf
+<span class="func">cd</span> env-monitor
+
+<span class="comment"># (place docker-compose.yml, mosquitto.conf, telegraf.conf)</span>
+
+<span class="comment"># Launch everything</span>
+<span class="func">docker compose</span> up -d
+
+<span class="comment"># Verify all containers are running</span>
+<span class="func">docker compose</span> ps
+
+<span class="comment"># Test MQTT from Pi (install mosquitto-clients)</span>
+<span class="func">mosquitto_pub</span> -h localhost -t <span class="string">"home/env"</span> \
+  -m <span class="string">'{"temp":22.5,"hum":45,"press":1013,"eco2":400,"tvoc":10,"co_ppm":2.1,"lux":300,"co_alert":"false"}'</span>
+
+<span class="comment"># Check InfluxDB received it</span>
+<span class="func">curl</span> -s http://localhost:8086/api/v2/query \
+  -H <span class="string">"Authorization: Token &lt;your-token&gt;"</span> \
+  -H <span class="string">"Content-Type: application/vnd.flux"</span> \
+  -d <span class="string">'from(bucket:"environment") |> range(start:-5m)'</span></div>
+  </div>
+
+  <h3>5 · Grafana Dashboard Setup</h3>
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>Add InfluxDB Data Source</h4>
+        <p>Open <code>http://&lt;pi-ip&gt;:3000</code>, go to Connections → Data Sources → InfluxDB. Set query language to Flux, URL to <code>http://influxdb:8086</code>, org to <code>home</code>, bucket to <code>environment</code>, and paste your InfluxDB API token.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>Create Dashboard Panels</h4>
+        <p>Add panels for each metric: a time-series chart for temperature/humidity, a gauge for CO ppm (with red zone above 50), a stat panel for eCO₂ and TVOC, and a light-level graph. Use Flux queries like: <code>from(bucket:"environment") |&gt; range(start: -24h) |&gt; filter(fn: (r) =&gt; r._field == "temp")</code></p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>Set Up CO Alert Rule</h4>
+        <p>In Grafana Alerting, create a rule on the <code>co_ppm</code> field: if last value &gt; 50 for 1 minute, fire alert. Use a contact point for email (via local SMTP or Sendmail) or a webhook to a notification service on your LAN.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div></div>
+      <div class="flow-content">
+        <h4>Kiosk Mode on Pi Display</h4>
+        <p>Auto-launch Chromium in kiosk mode on boot to show the Grafana dashboard full-screen on the Pi's display. Add to <code>/etc/xdg/lxsession/LXDE-pi/autostart</code>:<br><code>@chromium-browser --kiosk --noerrdialogs http://localhost:3000/d/env-monitor</code></p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Example Flux Query — 24h Temperature</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">Flux</span><span>Grafana panel query</span></div>
+    <div class="code-body"><span class="func">from</span>(bucket: <span class="string">"environment"</span>)
+  |&gt; <span class="func">range</span>(start: <span class="number">-24h</span>)
+  |&gt; <span class="func">filter</span>(fn: (r) =&gt; r._measurement == <span class="string">"environment"</span>)
+  |&gt; <span class="func">filter</span>(fn: (r) =&gt; r._field == <span class="string">"temp"</span>)
+  |&gt; <span class="func">aggregateWindow</span>(every: <span class="number">5m</span>, fn: <span class="keyword">mean</span>)
+  |&gt; <span class="func">yield</span>(name: <span class="string">"temperature"</span>)</div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">💡</span>
+    <div><strong>Tip:</strong> Use an SSD instead of a microSD card for InfluxDB storage — the constant writes from time-series data will wear out an SD card within months. A cheap USB-to-SATA adapter with a 120GB SSD works great.</div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">🔒</span>
+    <div><strong>LAN Security:</strong> Since everything stays on your local network, TLS is optional. If your Wi-Fi network is secured with WPA2/3, sensor data is already encrypted over the air. For extra security, enable Mosquitto authentication with a password file.</div>
+  </div>
+</div>
+
+<!-- ===== CO SAFETY ===== -->
+<div class="section" id="safety">
+  <h2>CO Safety Considerations</h2>
+  <p class="section-intro">Carbon monoxide is an invisible, odorless killer. While this project can detect CO, it should <strong>not</strong> replace a certified CO alarm.</p>
+
+  <div class="callout danger">
+    <span class="callout-icon">🚨</span>
+    <div><strong>Disclaimer:</strong> This is a hobby/educational project. The MQ-7 is not a certified safety device. Always install UL/CSA-listed carbon monoxide detectors in your home as required by local building codes. This monitor supplements — never replaces — certified alarms.</div>
+  </div>
+
+  <h3>CO Threshold Reference</h3>
+  <table class="bom-table">
+    <thead>
+      <tr><th>CO Level (ppm)</th><th>Health Effect</th><th>Monitor Action</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="part-name" style="color: var(--green);">0 – 9</span></td>
+        <td>Normal indoor air</td>
+        <td>Green status, no alarm</td>
+      </tr>
+      <tr>
+        <td><span class="part-name" style="color: var(--warn);">10 – 35</span></td>
+        <td>Marginal — sensitive individuals may be affected over hours</td>
+        <td>Yellow warning on dashboard</td>
+      </tr>
+      <tr>
+        <td><span class="part-name" style="color: var(--danger);">35 – 50</span></td>
+        <td>WHO 1-hour exposure limit</td>
+        <td>Orange alert + dashboard notification</td>
+      </tr>
+      <tr>
+        <td><span class="part-name" style="color: #ef4444;">50+</span></td>
+        <td>Dangerous — headache, dizziness within 1 hour</td>
+        <td><strong>Buzzer alarm</strong> + Grafana alert + CO_ALERT flag</td>
+      </tr>
+      <tr>
+        <td><span class="part-name" style="color: #dc2626;">200+</span></td>
+        <td>Life-threatening within 2-3 hours</td>
+        <td>Continuous alarm — <strong>evacuate immediately</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>MQ-7 Sensor Tips</h3>
+  <div class="callout">
+    <span class="callout-icon">🔧</span>
+    <div>
+      <strong>Burn-in:</strong> The MQ-7 requires a 48-hour burn-in period on first use for stable readings. During this time, readings will drift.<br><br>
+      <strong>Calibration:</strong> Calibrate R0 in known clean air (outdoor, away from traffic). The value of R0 in the firmware should be measured, not assumed from the datasheet.<br><br>
+      <strong>Heater Cycling:</strong> For better accuracy, the MQ-7 datasheet recommends alternating 60s at 5V (high heat) and 90s at 1.4V (low heat). The simplified firmware above uses constant 5V — for production quality, implement the heater cycling in a timer ISR.<br><br>
+      <strong>Placement:</strong> Mount the sensor at breathing height (3–5 ft), away from windows, kitchens, and bathrooms to avoid false readings from steam or cooking gases.
+    </div>
+  </div>
+</div>
+
+<!-- ===== ENCLOSURE ===== -->
+<div class="section" id="enclosure">
+  <h2>3D Printable Enclosure</h2>
+  <p class="section-intro">A two-part snap-fit enclosure designed for FDM printing. The base holds the LaunchPad and sensor breakouts on M2.5 standoffs. The lid features ventilation grilles, a light sensor window, buzzer port, and wall-mount keyholes.</p>
+
+  <h3>Design Overview</h3>
+  <div class="arch-grid">
+    <div class="arch-card">
+      <div class="icon">📐</div>
+      <h4>140 × 100 × 38 mm</h4>
+      <p>Outer dimensions. Compact enough for wall or shelf mounting. 2mm wall thickness throughout.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">🔩</div>
+      <h4>M2.5 Standoffs</h4>
+      <p>Heat-set brass inserts (M2.5 × 4mm) for the LaunchPad and each sensor breakout. Clean, reusable mounting.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">🌀</div>
+      <h4>Ventilation Grilles</h4>
+      <p>Louvered slits on the lid above the sensor bay allow natural airflow to the BME280, CCS811, and MQ-7.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">🔗</div>
+      <h4>Snap-Fit Closure</h4>
+      <p>Four snap clips on the base engage with the lid — no screws needed to open/close for maintenance.</p>
+    </div>
+  </div>
+
+  <h3>Internal Layout</h3>
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono, monospace">
+      <!-- Enclosure outline (base, top-down view) -->
+      <rect x="50" y="30" width="600" height="440" rx="12" fill="none" stroke="#2a3140" stroke-width="2" stroke-dasharray="8,4"/>
+      <text x="350" y="22" text-anchor="middle" fill="#566680" font-size="10">ENCLOSURE BASE — TOP-DOWN VIEW (140 × 100 mm)</text>
+
+      <!-- Internal wall divider -->
+      <line x1="400" y1="50" x2="400" y2="450" stroke="#2a3140" stroke-width="1.5" stroke-dasharray="4,4"/>
+      <text x="225" y="62" text-anchor="middle" fill="#8892a4" font-size="9" font-weight="600">MCU COMPARTMENT</text>
+      <text x="545" y="62" text-anchor="middle" fill="#8892a4" font-size="9" font-weight="600">SENSOR BAY</text>
+
+      <!-- CC3220SF LaunchPad -->
+      <rect x="90" y="90" width="270" height="160" rx="6" fill="rgba(34,211,238,0.06)" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="225" y="118" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="600">CC3220SF LaunchXL</text>
+      <text x="225" y="138" text-anchor="middle" fill="#566680" font-size="9">~100 × 58 mm</text>
+      <!-- standoff holes -->
+      <circle cx="108" cy="108" r="4" fill="none" stroke="#22d3ee" stroke-width="1"/>
+      <circle cx="342" cy="108" r="4" fill="none" stroke="#22d3ee" stroke-width="1"/>
+      <circle cx="108" cy="232" r="4" fill="none" stroke="#22d3ee" stroke-width="1"/>
+      <circle cx="342" cy="232" r="4" fill="none" stroke="#22d3ee" stroke-width="1"/>
+      <text x="225" y="170" text-anchor="middle" fill="#566680" font-size="8">M2.5 standoffs × 4</text>
+
+      <!-- USB cutout indicator -->
+      <rect x="50" y="145" width="10" height="30" rx="2" fill="#22d3ee" opacity="0.3"/>
+      <text x="28" y="165" text-anchor="middle" fill="#22d3ee" font-size="7" transform="rotate(-90,28,165)">USB</text>
+
+      <!-- Buzzer -->
+      <circle cx="225" cy="350" r="30" fill="rgba(167,139,250,0.06)" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="225" y="347" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="600">Buzzer</text>
+      <text x="225" y="362" text-anchor="middle" fill="#566680" font-size="8">Ø12mm</text>
+      <text x="225" y="400" text-anchor="middle" fill="#566680" font-size="7">Sound port in lid ↑</text>
+
+      <!-- BME280 -->
+      <rect x="425" y="85" width="80" height="55" rx="5" fill="rgba(74,222,128,0.06)" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="465" y="108" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="600">BME280</text>
+      <text x="465" y="125" text-anchor="middle" fill="#566680" font-size="7">13 × 10 mm</text>
+      <circle cx="433" cy="95" r="3" fill="none" stroke="#4ade80" stroke-width="0.8"/>
+      <circle cx="497" cy="95" r="3" fill="none" stroke="#4ade80" stroke-width="0.8"/>
+
+      <!-- CCS811 -->
+      <rect x="530" y="85" width="85" height="55" rx="5" fill="rgba(74,222,128,0.06)" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="572" y="108" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="600">CCS811</text>
+      <text x="572" y="125" text-anchor="middle" fill="#566680" font-size="7">22 × 22 mm</text>
+      <circle cx="538" cy="95" r="3" fill="none" stroke="#4ade80" stroke-width="0.8"/>
+      <circle cx="607" cy="95" r="3" fill="none" stroke="#4ade80" stroke-width="0.8"/>
+
+      <!-- Vent grille indicator -->
+      <rect x="420" y="155" width="210" height="30" rx="4" fill="none" stroke="#566680" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="435" y1="165" x2="435" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="450" y1="165" x2="450" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="465" y1="165" x2="465" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="480" y1="165" x2="480" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="495" y1="165" x2="495" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="510" y1="165" x2="510" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="525" y1="165" x2="525" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="540" y1="165" x2="540" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="555" y1="165" x2="555" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="570" y1="165" x2="570" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="585" y1="165" x2="585" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="600" y1="165" x2="600" y2="178" stroke="#566680" stroke-width="1"/>
+      <line x1="615" y1="165" x2="615" y2="178" stroke="#566680" stroke-width="1"/>
+      <text x="525" y="200" text-anchor="middle" fill="#566680" font-size="8">↑ Vent grille in lid above sensors</text>
+
+      <!-- MQ-7 -->
+      <circle cx="490" cy="290" r="42" fill="rgba(251,146,60,0.06)" stroke="#fb923c" stroke-width="1.5"/>
+      <text x="490" y="285" text-anchor="middle" fill="#fb923c" font-size="10" font-weight="600">MQ-7</text>
+      <text x="490" y="302" text-anchor="middle" fill="#566680" font-size="8">Ø32mm module</text>
+      <text x="490" y="350" text-anchor="middle" fill="#fb923c" font-size="7">⚠ Gets hot — standoff clearance</text>
+
+      <!-- BH1750 -->
+      <rect x="545" y="370" width="80" height="55" rx="5" fill="rgba(251,191,36,0.06)" stroke="#fbbf24" stroke-width="1.5"/>
+      <text x="585" y="393" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="600">BH1750</text>
+      <text x="585" y="410" text-anchor="middle" fill="#566680" font-size="7">22 × 16 mm</text>
+      <circle cx="553" cy="380" r="3" fill="none" stroke="#fbbf24" stroke-width="0.8"/>
+      <circle cx="617" cy="380" r="3" fill="none" stroke="#fbbf24" stroke-width="0.8"/>
+      <!-- light window -->
+      <rect x="632" y="378" width="18" height="40" rx="3" fill="rgba(251,191,36,0.1)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="641" y="403" text-anchor="middle" fill="#fbbf24" font-size="6" transform="rotate(90,641,403)">WINDOW</text>
+
+      <!-- Wall mount keyholes on back -->
+      <text x="350" y="478" text-anchor="middle" fill="#566680" font-size="8">⬇ Wall-mount keyhole slots on underside (2×) ⬇</text>
+
+      <!-- Wire routing channel -->
+      <rect x="380" y="230" width="20" height="120" rx="3" fill="none" stroke="#2a3140" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="390" y="225" text-anchor="middle" fill="#566680" font-size="7">wire</text>
+      <text x="390" y="360" text-anchor="middle" fill="#566680" font-size="7">channel</text>
+    </svg>
+  </div>
+
+  <h3>Print Settings</h3>
+  <div class="pin-grid">
+    <div class="pin-row"><span class="pin-id">Material</span><span class="pin-label">PETG recommended (heat resistant for MQ-7)</span></div>
+    <div class="pin-row"><span class="pin-id">Layer</span><span class="pin-label">0.2mm layer height</span></div>
+    <div class="pin-row"><span class="pin-id">Infill</span><span class="pin-label">20% gyroid</span></div>
+    <div class="pin-row"><span class="pin-id">Walls</span><span class="pin-label">3 perimeters (gives ~1.2mm wall)</span></div>
+    <div class="pin-row"><span class="pin-id">Supports</span><span class="pin-label">Needed for USB cutout and snap clips</span></div>
+    <div class="pin-row"><span class="pin-id">Time</span><span class="pin-label">~3.5 hrs base + ~2.5 hrs lid</span></div>
+    <div class="pin-row"><span class="pin-id">Inserts</span><span class="pin-label">10× M2.5 × 4mm brass heat-set inserts</span></div>
+    <div class="pin-row"><span class="pin-id">Screws</span><span class="pin-label">10× M2.5 × 6mm pan head</span></div>
+  </div>
+
+  <div class="callout warn">
+    <span class="callout-icon">🔥</span>
+    <div><strong>Use PETG, not PLA.</strong> The MQ-7 heater reaches ~300°C on its surface. PLA softens at ~60°C and will deform. PETG handles up to ~80°C and is much safer. Keep the MQ-7 on tall standoffs (8mm+) for air gap clearance, and position it away from enclosure walls.</div>
+  </div>
+
+  <h3>Cross-Section — Side View</h3>
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono, monospace">
+      <!-- Lid -->
+      <rect x="60" y="20" width="580" height="18" rx="4" fill="#1c222b" stroke="#8892a4" stroke-width="1.5"/>
+      <text x="350" y="33" text-anchor="middle" fill="#8892a4" font-size="9">LID</text>
+
+      <!-- Snap clips -->
+      <rect x="90" y="38" width="8" height="16" rx="1" fill="#a78bfa"/>
+      <rect x="602" y="38" width="8" height="16" rx="1" fill="#a78bfa"/>
+      <text x="60" y="50" text-anchor="end" fill="#a78bfa" font-size="7">snap</text>
+
+      <!-- Vent grille openings in lid -->
+      <rect x="400" y="20" width="3" height="18" fill="var(--bg)"/>
+      <rect x="412" y="20" width="3" height="18" fill="var(--bg)"/>
+      <rect x="424" y="20" width="3" height="18" fill="var(--bg)"/>
+      <rect x="436" y="20" width="3" height="18" fill="var(--bg)"/>
+      <rect x="448" y="20" width="3" height="18" fill="var(--bg)"/>
+      <rect x="460" y="20" width="3" height="18" fill="var(--bg)"/>
+      <text x="430" y="14" text-anchor="middle" fill="#4ade80" font-size="7">vent grille</text>
+
+      <!-- Buzzer sound port -->
+      <circle cx="225" cy="29" r="6" fill="var(--bg)" stroke="#a78bfa" stroke-width="1"/>
+      <text x="225" y="14" text-anchor="middle" fill="#a78bfa" font-size="7">sound port</text>
+
+      <!-- Light window in lid -->
+      <rect x="565" y="20" width="20" height="18" rx="2" fill="rgba(251,191,36,0.15)" stroke="#fbbf24" stroke-width="1"/>
+      <text x="575" y="14" text-anchor="middle" fill="#fbbf24" font-size="7">light window</text>
+
+      <!-- Air gap -->
+      <rect x="70" y="38" width="560" height="60" rx="0" fill="none" stroke="none"/>
+      <text x="350" y="72" text-anchor="middle" fill="#566680" font-size="8">34mm internal height</text>
+
+      <!-- Base -->
+      <rect x="60" y="98" width="580" height="18" rx="4" fill="#1c222b" stroke="#8892a4" stroke-width="1.5"/>
+
+      <!-- Standoffs -->
+      <rect x="110" y="78" width="6" height="20" rx="1" fill="#fb923c"/>
+      <rect x="330" y="78" width="6" height="20" rx="1" fill="#fb923c"/>
+      <text x="220" y="92" text-anchor="middle" fill="#fb923c" font-size="7">6mm standoffs</text>
+
+      <!-- MQ-7 tall standoff -->
+      <rect x="465" y="62" width="6" height="36" rx="1" fill="#f87171"/>
+      <rect x="505" y="62" width="6" height="36" rx="1" fill="#f87171"/>
+      <text x="488" y="57" text-anchor="middle" fill="#f87171" font-size="7">8mm standoff (MQ-7)</text>
+
+      <!-- Components on standoffs -->
+      <rect x="100" y="68" width="240" height="10" rx="2" fill="rgba(34,211,238,0.15)" stroke="#22d3ee" stroke-width="1"/>
+      <text x="220" y="66" text-anchor="middle" fill="#22d3ee" font-size="8">CC3220SF PCB</text>
+
+      <rect x="420" y="55" width="30" height="7" rx="1" fill="rgba(74,222,128,0.15)" stroke="#4ade80" stroke-width="0.8"/>
+      <text x="435" y="52" text-anchor="middle" fill="#4ade80" font-size="7">BME</text>
+
+      <rect x="455" y="52" width="60" height="10" rx="2" fill="rgba(251,146,60,0.15)" stroke="#fb923c" stroke-width="1"/>
+      <text x="485" y="48" text-anchor="middle" fill="#fb923c" font-size="7">MQ-7 (elevated)</text>
+
+      <rect x="555" y="68" width="30" height="7" rx="1" fill="rgba(251,191,36,0.15)" stroke="#fbbf24" stroke-width="0.8"/>
+      <text x="570" y="66" text-anchor="middle" fill="#fbbf24" font-size="7">BH1750</text>
+
+      <!-- Wall mount keyhole -->
+      <path d="M160,116 L160,140 A8,8 0 1,0 160,140 Z" fill="none" stroke="#566680" stroke-width="1"/>
+      <circle cx="160" cy="145" r="6" fill="none" stroke="#566680" stroke-width="1"/>
+      <rect x="157" y="116" width="6" height="20" fill="none" stroke="#566680" stroke-width="1"/>
+      <circle cx="540" cy="145" r="6" fill="none" stroke="#566680" stroke-width="1"/>
+      <rect x="537" y="116" width="6" height="20" fill="none" stroke="#566680" stroke-width="1"/>
+      <text x="350" y="160" text-anchor="middle" fill="#566680" font-size="8">↓ wall-mount keyhole slots (70mm apart) ↓</text>
+
+      <!-- USB cutout -->
+      <rect x="56" y="74" width="14" height="14" rx="2" fill="var(--bg)" stroke="#22d3ee" stroke-width="1"/>
+      <text x="40" y="84" text-anchor="end" fill="#22d3ee" font-size="7">USB</text>
+
+      <!-- Dimension lines -->
+      <line x1="650" y1="20" x2="650" y2="116" stroke="#566680" stroke-width="0.5"/>
+      <line x1="645" y1="20" x2="655" y2="20" stroke="#566680" stroke-width="0.5"/>
+      <line x1="645" y1="116" x2="655" y2="116" stroke="#566680" stroke-width="0.5"/>
+      <text x="660" y="72" fill="#566680" font-size="8" text-anchor="start">38mm</text>
+    </svg>
+  </div>
+
+  <h3>Assembly Instructions</h3>
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>1 · Install Heat-Set Inserts</h4>
+        <p>Using a soldering iron at ~220°C with a tapered tip, press 10 brass M2.5 inserts into the standoff posts on the base: 4 for the LaunchPad, 2 each for BME280/CCS811/BH1750. The MQ-7 mounts on the two tall (8mm) posts.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>2 · Mount the CC3220SF</h4>
+        <p>Place the LaunchPad on the 4 standoffs in the MCU compartment with the USB-micro port aligned to the side cutout. Secure with M2.5 × 6mm screws.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>3 · Mount Sensors</h4>
+        <p>Screw the BME280, CCS811, and BH1750 breakouts onto their standoffs in the sensor bay. Mount the MQ-7 module on the tall standoffs — ensure at least 8mm clearance between the heater can and the base floor.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>4 · Wire Everything</h4>
+        <p>Route I²C and power wires through the wire channel between compartments. Hot-glue the buzzer into the lid recess (align with the sound port hole). Connect the voltage divider inline on the MQ-7 analog wire.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+      <div class="flow-content">
+        <h4>5 · Close &amp; Mount</h4>
+        <p>Press the lid onto the base — the 4 snap clips will click into place. For the light window, optionally glue a small piece of frosted acrylic over the opening. Hang on wall using the keyhole slots, or use 3M command strips for flat surfaces.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-line"><div class="flow-dot"></div></div>
+      <div class="flow-content">
+        <h4>6 · Optional: Translucent PETG Lid</h4>
+        <p>Print the lid in natural (clear) PETG for a diffused glow effect — you can add a status LED inside that shines through the lid to indicate air quality at a glance (green/yellow/red).</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>OpenSCAD Source</h3>
+  <p>The parametric OpenSCAD file is included as a downloadable <code>.scad</code> file. All dimensions are configurable at the top of the file — adjust for your specific breakout board dimensions, wall thickness, or standoff heights. Export as STL from OpenSCAD for slicing.</p>
+
+  <div class="callout">
+    <span class="callout-icon">💡</span>
+    <div><strong>Tolerance Tip:</strong> The default design uses 0.3mm clearance for snap fits and screw holes. If your printer is less precise, increase the <code>tolerance</code> parameter in the OpenSCAD file. Print a small test clip first to dial in your fit.</div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">🪟</span>
+    <div><strong>Light Window:</strong> For accurate BH1750 readings, leave the window open or cover with a thin piece of clear/frosted acrylic (1mm). Avoid solid plastic — it will block light and give artificially low lux values.</div>
+  </div>
+</div>
+
+<script>
+  // Tab switching
+  const tabs = document.querySelectorAll('.tab');
+  const sections = document.querySelectorAll('.section');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      sections.forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
