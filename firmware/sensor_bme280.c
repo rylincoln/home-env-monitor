@@ -31,7 +31,7 @@ static bool i2c_write_reg(I2C_Handle i2c, uint8_t reg, uint8_t val)
 {
     uint8_t txBuf[2] = {reg, val};
     I2C_Transaction txn = {0};
-    txn.slaveAddress = BME280_I2C_ADDR;
+    txn.targetAddress = BME280_I2C_ADDR;
     txn.writeBuf = txBuf;
     txn.writeCount = 2;
     txn.readBuf = NULL;
@@ -42,7 +42,7 @@ static bool i2c_write_reg(I2C_Handle i2c, uint8_t reg, uint8_t val)
 static bool i2c_read_regs(I2C_Handle i2c, uint8_t reg, uint8_t *buf, uint8_t len)
 {
     I2C_Transaction txn = {0};
-    txn.slaveAddress = BME280_I2C_ADDR;
+    txn.targetAddress = BME280_I2C_ADDR;
     txn.writeBuf = &reg;
     txn.writeCount = 1;
     txn.readBuf = buf;

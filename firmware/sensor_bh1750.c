@@ -10,7 +10,7 @@
 static bool bh1750_send_cmd(I2C_Handle i2c, uint8_t cmd)
 {
     I2C_Transaction txn = {0};
-    txn.slaveAddress = BH1750_I2C_ADDR;
+    txn.targetAddress = BH1750_I2C_ADDR;
     txn.writeBuf = &cmd;
     txn.writeCount = 1;
     txn.readBuf = NULL;
@@ -30,7 +30,7 @@ void BH1750_read(I2C_Handle i2c, uint16_t *lux)
 {
     uint8_t buf[2] = {0, 0};
     I2C_Transaction txn = {0};
-    txn.slaveAddress = BH1750_I2C_ADDR;
+    txn.targetAddress = BH1750_I2C_ADDR;
     txn.writeBuf = NULL;
     txn.writeCount = 0;
     txn.readBuf = buf;

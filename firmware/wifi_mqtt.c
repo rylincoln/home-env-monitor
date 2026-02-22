@@ -50,7 +50,7 @@ bool WiFi_connect(const char *ssid, const char *password)
     while (retries-- > 0) {
         SlNetCfgIpV4Args_t ipV4 = {0};
         uint16_t len = sizeof(ipV4);
-        uint8_t  dhcpIsOn = 0;
+        uint16_t dhcpIsOn = 0;
         int16_t status = sl_NetCfgGet(SL_NETCFG_IPV4_STA_ADDR_MODE,
                                        &dhcpIsOn, &len, (uint8_t *)&ipV4);
         if (status >= 0 && ipV4.Ip != 0) return true;
@@ -67,12 +67,12 @@ bool MQTT_connect(const char *broker, uint16_t port, const char *client_id)
     stored_port = port;
     stored_client_id = client_id;
 
-    MQTTClient_ConnParams connParams = MQTTClient_defaultConnParams;
+    MQTTClient_ConnParams connParams = {0};
     connParams.serverAddr = broker;
     connParams.port = port;
 
     MQTTClient_Params mqttParams;
-    mqttParams.clientId = client_id;
+    mqttParams.clientId = (char *)client_id;
     mqttParams.connParams = &connParams;
 
     mqttClient = MQTTClient_create(NULL, &mqttParams);
@@ -104,7 +104,7 @@ bool MQTT_publish(const char *topic, const char *payload)
     int ret = MQTTClient_publish(mqttClient,
                                   (char *)topic, strlen(topic),
                                   (char *)payload, strlen(payload),
-                                  MQTTCLIENT_QOS_0);
+                                  MQTT_QOS_0);
     return (ret == 0);
 }
 

@@ -16,7 +16,7 @@ static bool sgp30_send_cmd(I2C_Handle i2c, uint8_t cmd_h, uint8_t cmd_l)
 {
     uint8_t txBuf[2] = {cmd_h, cmd_l};
     I2C_Transaction txn = {0};
-    txn.slaveAddress = SGP30_I2C_ADDR;
+    txn.targetAddress = SGP30_I2C_ADDR;
     txn.writeBuf = txBuf;
     txn.writeCount = 2;
     txn.readBuf = NULL;
@@ -27,7 +27,7 @@ static bool sgp30_send_cmd(I2C_Handle i2c, uint8_t cmd_h, uint8_t cmd_l)
 static bool sgp30_read_data(I2C_Handle i2c, uint8_t *buf, uint8_t len)
 {
     I2C_Transaction txn = {0};
-    txn.slaveAddress = SGP30_I2C_ADDR;
+    txn.targetAddress = SGP30_I2C_ADDR;
     txn.writeBuf = NULL;
     txn.writeCount = 0;
     txn.readBuf = buf;

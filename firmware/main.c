@@ -12,10 +12,8 @@
  * every READ_INTERVAL_MS / 1000 iterations.
  */
 
-#include <ti/drivers/Board.h>
 #include <ti/drivers/I2C.h>
 #include <ti/drivers/ADC.h>
-#include <ti/drivers/GPIO.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -51,9 +49,6 @@ void mainThread(void *arg0)
 {
     (void)arg0;
 
-    /* Board_init must be first — initializes driver tables and power */
-    Board_init();
-
     /* Initialize drivers */
     I2C_Handle i2c = I2C_open(Board_I2C0, NULL);
     if (i2c == NULL) {
@@ -69,8 +64,6 @@ void mainThread(void *arg0)
     if (adc_mic == NULL) {
         while (1) {}  /* Fatal: Mic ADC unavailable */
     }
-
-    GPIO_init();
 
     /* Initialize sensors */
     BME280_init(i2c);
