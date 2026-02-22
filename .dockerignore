@@ -1,0 +1,7 @@
+build/
+.devcontainer/sdk/
+.git/
+.vscode/
+*.bin
+*.out
+*.map

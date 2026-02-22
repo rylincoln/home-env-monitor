@@ -1,0 +1,34 @@
+{
+    "name": "CC3220SF Firmware",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "."
+    },
+    "workspaceFolder": "/workspaces/home-env-monitor",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools"
+            ],
+            "settings": {
+                "C_Cpp.default.compilerPath": "/opt/arm-gnu-toolchain/bin/arm-none-eabi-gcc",
+                "C_Cpp.default.cStandard": "c99",
+                "C_Cpp.default.intelliSenseMode": "gcc-arm",
+                "C_Cpp.default.includePath": [
+                    "${workspaceFolder}/firmware",
+                    "/opt/ti/simplelink_cc32xx_sdk_7_10_00_13/source",
+                    "/opt/ti/simplelink_cc32xx_sdk_7_10_00_13/source/ti/posix/gcc",
+                    "/opt/ti/simplelink_cc32xx_sdk_7_10_00_13/kernel/freertos",
+                    "/opt/ti/simplelink_cc32xx_sdk_7_10_00_13/kernel/freertos/builds/cc32xx/release/pregenerated_configuration",
+                    "/opt/FreeRTOS-Kernel/include",
+                    "/opt/FreeRTOS-Kernel/portable/GCC/ARM_CM3"
+                ],
+                "C_Cpp.default.defines": [
+                    "DeviceFamily_CC3220",
+                    "_REENT_SMALL"
+                ]
+            }
+        }
+    },
+    "postCreateCommand": "arm-none-eabi-gcc --version && make clean"
+}
