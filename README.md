@@ -4,13 +4,13 @@ A CC3220SF-based indoor environment monitoring system that tracks temperature, h
 
 ## Sensors
 
-| Sensor | Measures | Interface |
-|--------|----------|-----------|
-| BME280 | Temperature, humidity, barometric pressure | I2C `0x76` |
-| CCS811 | eCO2, TVOC (indoor air quality) | I2C `0x5A` |
-| MQ-7 | Carbon monoxide (20-2000 ppm) | ADC (via voltage divider) |
-| BH1750 | Ambient light (1-65535 lux) | I2C `0x23` |
-| Piezo Buzzer | CO alarm output | GPIO (via 2N2222 transistor) |
+| Sensor       | Measures                                   | Interface                    |
+| ------------ | ------------------------------------------ | ---------------------------- |
+| BME280       | Temperature, humidity, barometric pressure | I2C `0x76`                   |
+| CCS811       | eCO2, TVOC (indoor air quality)            | I2C `0x5A`                   |
+| MQ-7         | Carbon monoxide (20-2000 ppm)              | ADC (via voltage divider)    |
+| BH1750       | Ambient light (1-65535 lux)                | I2C `0x23`                   |
+| Piezo Buzzer | CO alarm output                            | GPIO (via 2N2222 transistor) |
 
 ## Architecture
 
@@ -50,13 +50,27 @@ Render parts in OpenSCAD by setting `RENDER_PART` to `"base"`, `"lid"`, or `"bot
 
 ## Bill of Materials
 
-~$60 total. See `project.html` for the full BOM with part descriptions and estimated costs. Key components:
+See `project.html` for full part descriptions, wiring details, and estimated costs.
 
-- CC3220SF-LAUNCHXL (~$30)
-- BME280, CCS811, BH1750, MQ-7 sensor breakouts
-- Piezo buzzer, 2N2222 transistor, resistors (10k/20k voltage divider)
-- Logic level shifter (3.3V/5V for MQ-7)
-- Raspberry Pi 4 (2GB+) for the dashboard
+> **Note:** The CCS811 has been discontinued by AMS. The [Adafruit SGP30](https://www.adafruit.com/product/3709) ($17.50, in stock) is the recommended drop-in replacement for eCO2/TVOC sensing over I2C.
+
+| Component                                                                                                   | Description                                          | Price  | Source                                                                                                                                                                                                                                                                                                |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [CC3220SF-LAUNCHXL](https://www.digikey.com/en/products/detail/texas-instruments/CC3220SF-LAUNCHXL/6660400) | TI SimpleLink Wi-Fi LaunchPad (MCU)                  | ~$70   | [DigiKey](https://www.digikey.com/en/products/detail/texas-instruments/CC3220SF-LAUNCHXL/6660400), [Mouser](https://www.mouser.com/ProductDetail/Texas-Instruments/CC3220SF-LAUNCHXL?qs=KuuZdrM3jLxt7xOTmPb+qA%3D%3D), [Arrow](https://www.arrow.com/en/products/cc3220sf-launchxl/texas-instruments) |
+| [BME280](https://www.adafruit.com/product/2652)                                                             | Temp/humidity/pressure sensor breakout (I2C)         | $14.95 | [Adafruit](https://www.adafruit.com/product/2652) (in stock), [SparkFun](https://www.sparkfun.com/sparkfun-atmospheric-sensor-breakout-bme280.html)                                                                                                                                                   |
+| [SGP30](https://www.adafruit.com/product/3709)                                                              | eCO2/TVOC air quality sensor (I2C) — replaces CCS811 | $17.50 | [Adafruit](https://www.adafruit.com/product/3709) (in stock), [Amazon](https://www.amazon.com/Adafruit-SGP30-Quality-Sensor-Breakout/dp/B07L5YN11R)                                                                                                                                                   |
+| [MQ-7](https://www.sparkfun.com/carbon-monoxide-sensor-mq-7.html)                                           | Carbon monoxide sensor module (analog)               | ~$7.50 | [SparkFun SEN-09403](https://www.sparkfun.com/carbon-monoxide-sensor-mq-7.html)                                                                                                                                                                                                                       |
+| [BH1750](https://www.adafruit.com/product/4681)                                                             | Ambient light sensor breakout (I2C)                  | $4.50  | [Adafruit](https://www.adafruit.com/product/4681) (in stock), [Mouser](https://www.mouser.com/new/adafruit/adafruit-bh1750-ambient-light-sensor/)                                                                                                                                                     |
+| [Piezo Buzzer](https://www.adafruit.com/product/1536)                                                       | Active buzzer, 5V, breadboard-friendly               | $0.95  | [Adafruit](https://www.adafruit.com/product/1536) (in stock)                                                                                                                                                                                                                                          |
+| [Logic Level Shifter](https://www.sparkfun.com/sparkfun-logic-level-converter-bi-directional.html)          | 4-ch bi-directional 3.3V/5V (for MQ-7)               | ~$3.95 | [SparkFun BOB-12009](https://www.sparkfun.com/sparkfun-logic-level-converter-bi-directional.html), [Amazon](https://www.amazon.com/SparkFun-BOB-12009-Logic-Converter-Bi-Directional/dp/B00M7U5DV2)                                                                                                   |
+| [2N2222A Transistor](https://www.digikey.com/en/products/detail/dcomponents/2N2222A/13575189)               | NPN TO-92 (buzzer driver)                            | ~$0.17 | [DigiKey](https://www.digikey.com/en/products/detail/dcomponents/2N2222A/13575189) (in stock)                                                                                                                                                                                                         |
+| [10kΩ Resistor](https://www.digikey.com/en/products/detail/stackpole-electronics-inc/CF14JT10K0/1741265)    | 1/4W through-hole (voltage divider)                  | ~$0.10 | [DigiKey](https://www.digikey.com/en/products/detail/stackpole-electronics-inc/CF14JT10K0/1741265)                                                                                                                                                                                                    |
+| [20kΩ Resistor](https://digikey.com/en/products/detail/yageo/CFR-25JB-52-20K/880)                           | 1/4W through-hole (voltage divider)                  | ~$0.10 | [DigiKey](https://digikey.com/en/products/detail/yageo/CFR-25JB-52-20K/880)                                                                                                                                                                                                                           |
+| [Breadboard](https://www.adafruit.com/product/64)                                                           | Half-size, 400 tie points                            | ~$5.00 | [Adafruit](https://www.adafruit.com/product/64)                                                                                                                                                                                                                                                       |
+| [Jumper Wires (M-M)](https://www.adafruit.com/product/758)                                                  | 40-pack, 150mm                                       | ~$4.00 | [Adafruit](https://www.adafruit.com/product/758)                                                                                                                                                                                                                                                      |
+| [Jumper Wires (M-F)](https://www.adafruit.com/product/826)                                                  | 40-pack, 150mm                                       | ~$4.00 | [Adafruit](https://www.adafruit.com/product/826)                                                                                                                                                                                                                                                      |
+
+_Prices checked Feb 2026. Raspberry Pi 4 (2GB+) also required for the dashboard but not listed above._
 
 ## Dashboard Stack (Raspberry Pi)
 
