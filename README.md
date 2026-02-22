@@ -1,6 +1,6 @@
 # Home Environment Monitor
 
-A CC3220SF-based indoor environment monitoring system that tracks temperature, humidity, air quality, CO levels, and ambient light — with a local Raspberry Pi dashboard and CO safety alarms.
+A CC3220SF-based indoor environment monitoring system that tracks temperature, humidity, air quality, CO levels, ambient light, particulate matter, and noise — with a local Raspberry Pi dashboard and CO safety alarms.
 
 ## Sensors
 
@@ -10,6 +10,8 @@ A CC3220SF-based indoor environment monitoring system that tracks temperature, h
 | SGP30        | eCO2, TVOC (indoor air quality)            | I2C `0x58`                   |
 | MQ-7         | Carbon monoxide (20-2000 ppm)              | ADC (via voltage divider)    |
 | BH1750       | Ambient light (1-65535 lux)                | I2C `0x23`                   |
+| BMV080       | Particulate matter (PM1, PM2.5, PM10)      | I2C (Qwiic)                  |
+| MEMS Mic     | Ambient noise level (dB)                   | ADC                          |
 | Piezo Buzzer | CO alarm output                            | GPIO (via 2N2222 transistor) |
 
 ## Architecture
@@ -19,8 +21,10 @@ CC3220SF LaunchPad          Raspberry Pi (LAN)
 ┌─────────────────┐         ┌──────────────────────┐
 │  BME280 ─┐      │  MQTT   │  Mosquitto (broker)  │
 │  SGP30  ─┤ I2C  │────────>│  Telegraf → InfluxDB │
-│  BH1750 ─┘      │  JSON   │  Grafana (dashboard) │
-│  MQ-7 ── ADC    │         └──────────────────────┘
+│  BH1750 ─┤      │  JSON   │  Grafana (dashboard) │
+│  BMV080 ─┘      │         └──────────────────────┘
+│  MQ-7 ─┐ ADC   │
+│  Mic ──┘        │
 │  Buzzer ─ GPIO  │
 └─────────────────┘
 ```
@@ -59,6 +63,8 @@ See `project.html` for full part descriptions, wiring details, and estimated cos
 | [SGP30](https://www.adafruit.com/product/3709)                                                              | eCO2/TVOC air quality sensor (I2C)                   | $17.50 | [Adafruit](https://www.adafruit.com/product/3709), [Amazon](https://www.amazon.com/Adafruit-SGP30-Quality-Sensor-Breakout/dp/B07L5YN11R)                                                                                                                                                   |
 | [MQ-7](https://www.sparkfun.com/carbon-monoxide-sensor-mq-7.html)                                           | Carbon monoxide sensor module (analog)               | ~$7.50 | [SparkFun SEN-09403](https://www.sparkfun.com/carbon-monoxide-sensor-mq-7.html)                                                                                                                                                                                                                       |
 | [BH1750](https://www.adafruit.com/product/4681)                                                             | Ambient light sensor breakout (I2C)                  | $4.50  | [Adafruit](https://www.adafruit.com/product/4681), [Mouser](https://www.mouser.com/new/adafruit/adafruit-bh1750-ambient-light-sensor/)                                                                                                                                                     |
+| [BMV080](https://www.sparkfun.com/sparkfun-air-quality-pm1-pm2-5-pm10-sensor-bmv080-qwiic.html)             | PM1/PM2.5/PM10 particulate matter (I2C)              | $64.95 | [SparkFun](https://www.sparkfun.com/sparkfun-air-quality-pm1-pm2-5-pm10-sensor-bmv080-qwiic.html), [Amazon](https://www.amazon.com/SparkFun-Quality-PM2-5-PM10-Sensor/dp/B0FMHXKVSR)                                                                                                       |
+| [MEMS Microphone](https://www.sparkfun.com/sparkfun-analog-mems-microphone-breakout-sph8878lr5h-1.html)     | Analog MEMS mic for noise level (ADC)                | ~$7.00 | [SparkFun](https://www.sparkfun.com/sparkfun-analog-mems-microphone-breakout-sph8878lr5h-1.html)                                                                                                                                                                                           |
 | [Piezo Buzzer](https://www.adafruit.com/product/1536)                                                       | Active buzzer, 5V, breadboard-friendly               | $0.95  | [Adafruit](https://www.adafruit.com/product/1536)                                                                                                                                                                                                                                          |
 | [Logic Level Shifter](https://www.sparkfun.com/sparkfun-logic-level-converter-bi-directional.html)          | 4-ch bi-directional 3.3V/5V (for MQ-7)               | ~$3.95 | [SparkFun BOB-12009](https://www.sparkfun.com/sparkfun-logic-level-converter-bi-directional.html), [Amazon](https://www.amazon.com/SparkFun-BOB-12009-Logic-Converter-Bi-Directional/dp/B00M7U5DV2)                                                                                                   |
 | [2N2222A Transistor](https://www.digikey.com/en/products/detail/dcomponents/2N2222A/13575189)               | NPN TO-92 (buzzer driver)                            | ~$0.17 | [DigiKey](https://www.digikey.com/en/products/detail/dcomponents/2N2222A/13575189)                                                                                                                                                                                                         |

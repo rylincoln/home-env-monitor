@@ -452,13 +452,15 @@
 <div class="hero">
   <div class="hero-label">TI CC3220SF LAUNCHXL Project Design</div>
   <h1>Home Environment <span>Monitor</span></h1>
-  <p class="hero-sub">A Wi-Fi connected sensor hub that tracks temperature, humidity, air quality, ambient light, and carbon monoxide — reporting live data to a self-hosted Grafana dashboard on a Raspberry Pi.</p>
+  <p class="hero-sub">A Wi-Fi connected sensor hub that tracks temperature, humidity, air quality, particulate matter, ambient light, noise level, and carbon monoxide — reporting live data to a self-hosted Grafana dashboard on a Raspberry Pi.</p>
   <div class="badge-row">
     <span class="badge cyan">CC3220SF</span>
     <span class="badge">BME280</span>
     <span class="badge">SGP30</span>
     <span class="badge purple">MQ-7 CO</span>
     <span class="badge">BH1750</span>
+    <span class="badge">BMV080</span>
+    <span class="badge">MEMS Mic</span>
     <span class="badge">Mosquitto</span>
     <span class="badge">InfluxDB</span>
     <span class="badge">Grafana</span>
@@ -503,6 +505,16 @@
       <p>Digital ambient light sensor (1–65535 lux range) via I²C.</p>
     </div>
     <div class="arch-card">
+      <div class="icon">🌫️</div>
+      <h4>BMV080</h4>
+      <p>Ultra-compact particulate matter sensor — PM1, PM2.5, PM10 via I²C. No fan required.</p>
+    </div>
+    <div class="arch-card">
+      <div class="icon">🎙️</div>
+      <h4>MEMS Microphone</h4>
+      <p>Analog MEMS mic (SPH8878LR5H-1) for ambient noise level monitoring via ADC.</p>
+    </div>
+    <div class="arch-card">
       <div class="icon">📡</div>
       <h4>CC3220SF Wi-Fi</h4>
       <p>Built-in Wi-Fi. Connects to local Mosquitto MQTT broker on the Raspberry Pi.</p>
@@ -520,7 +532,7 @@
       <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
       <div class="flow-content">
         <h4>1 · Sensor Acquisition</h4>
-        <p>BME280, SGP30, and BH1750 are polled over I²C. MQ-7 analog voltage is read via the CC3220's 12-bit ADC (channel 2).</p>
+        <p>BME280, SGP30, BH1750, and BMV080 are polled over I²C. MQ-7 and MEMS microphone analog voltages are read via the CC3220's 12-bit ADC.</p>
       </div>
     </div>
     <div class="flow-step">
@@ -595,6 +607,18 @@
         <td>$3</td>
       </tr>
       <tr>
+        <td><span class="part-name">BMV080</span><br><span class="part-desc">Bosch Particulate Matter Sensor</span></td>
+        <td>PM1, PM2.5, PM10 detection. Ultra-compact (4.4 × 3.0 mm), fan-less.</td>
+        <td><span class="interface-badge">I²C (Qwiic)</span></td>
+        <td>$65</td>
+      </tr>
+      <tr>
+        <td><span class="part-name">MEMS Microphone</span><br><span class="part-desc">SPH8878LR5H-1 Analog Mic</span></td>
+        <td>Omnidirectional MEMS mic with op-amp. Analog output for noise level monitoring.</td>
+        <td><span class="interface-badge">ADC</span></td>
+        <td>$7</td>
+      </tr>
+      <tr>
         <td><span class="part-name">Piezo Buzzer</span><br><span class="part-desc">Active, 3.3V compatible</span></td>
         <td>CO alarm output. Driven via GPIO + NPN transistor (2N2222).</td>
         <td><span class="interface-badge">GPIO</span></td>
@@ -636,24 +660,29 @@
 <!-- ===== WIRING ===== -->
 <div class="section" id="wiring">
   <h2>Wiring &amp; Pin Assignments</h2>
-  <p class="section-intro">All I²C sensors share the same SDA/SCL bus. The MQ-7 uses an ADC input with a voltage divider. The buzzer is driven through a transistor on a GPIO pin.</p>
+  <p class="section-intro">All I²C sensors share the same SDA/SCL bus. The MQ-7 and MEMS microphone use ADC inputs. The buzzer is driven through a transistor on a GPIO pin.</p>
 
   <h3>CC3220SF Pin Mapping</h3>
   <div class="pin-grid">
     <div class="pin-row">
       <span class="pin-id">P01</span>
       <span class="pin-label">I²C SCL</span>
-      <span class="pin-sensor">→ BME280, SGP30, BH1750</span>
+      <span class="pin-sensor">→ BME280, SGP30, BH1750, BMV080</span>
     </div>
     <div class="pin-row">
       <span class="pin-id">P02</span>
       <span class="pin-label">I²C SDA</span>
-      <span class="pin-sensor">→ BME280, SGP30, BH1750</span>
+      <span class="pin-sensor">→ BME280, SGP30, BH1750, BMV080</span>
     </div>
     <div class="pin-row">
       <span class="pin-id">P59</span>
       <span class="pin-label">ADC CH2</span>
       <span class="pin-sensor">→ MQ-7 Analog (via divider)</span>
+    </div>
+    <div class="pin-row">
+      <span class="pin-id">P60</span>
+      <span class="pin-label">ADC CH3</span>
+      <span class="pin-sensor">→ MEMS Microphone AUD output</span>
     </div>
     <div class="pin-row">
       <span class="pin-id">P64</span>
@@ -663,7 +692,7 @@
     <div class="pin-row">
       <span class="pin-id">3V3</span>
       <span class="pin-label">3.3V Rail</span>
-      <span class="pin-sensor">→ BME280, SGP30, BH1750 VCC</span>
+      <span class="pin-sensor">→ BME280, SGP30, BH1750, BMV080 VCC</span>
     </div>
     <div class="pin-row">
       <span class="pin-id">5V</span>
@@ -783,6 +812,8 @@
 ├── sensor_bme280.c/h   <span class="comment">// BME280 I²C driver</span>
 ├── sensor_sgp30.c/h    <span class="comment">// SGP30 I²C driver</span>
 ├── sensor_bh1750.c/h   <span class="comment">// BH1750 I²C driver</span>
+├── sensor_bmv080.c/h   <span class="comment">// BMV080 PM sensor I²C driver</span>
+├── sensor_mic.c/h      <span class="comment">// MEMS microphone ADC + dB conversion</span>
 ├── sensor_mq7.c/h      <span class="comment">// MQ-7 ADC read + ppm conversion</span>
 ├── co_alarm.c/h        <span class="comment">// CO threshold logic + buzzer</span>
 ├── wifi_mqtt.c/h       <span class="comment">// Wi-Fi connect + MQTT publish</span>
@@ -801,6 +832,8 @@
 <span class="preproc">#include</span> <span class="string">"sensor_sgp30.h"</span>
 <span class="preproc">#include</span> <span class="string">"sensor_bh1750.h"</span>
 <span class="preproc">#include</span> <span class="string">"sensor_mq7.h"</span>
+<span class="preproc">#include</span> <span class="string">"sensor_bmv080.h"</span>
+<span class="preproc">#include</span> <span class="string">"sensor_mic.h"</span>
 <span class="preproc">#include</span> <span class="string">"co_alarm.h"</span>
 <span class="preproc">#include</span> <span class="string">"wifi_mqtt.h"</span>
 
@@ -816,6 +849,10 @@
     <span class="type">uint16_t</span> tvoc;       <span class="comment">// ppb</span>
     <span class="type">float</span> co_ppm;         <span class="comment">// ppm (MQ-7)</span>
     <span class="type">uint16_t</span> lux;        <span class="comment">// lux</span>
+    <span class="type">float</span> pm1;            <span class="comment">// µg/m³ (BMV080)</span>
+    <span class="type">float</span> pm25;           <span class="comment">// µg/m³ (BMV080)</span>
+    <span class="type">float</span> pm10;           <span class="comment">// µg/m³ (BMV080)</span>
+    <span class="type">float</span> noise_db;       <span class="comment">// dB (MEMS mic)</span>
     <span class="type">bool</span> co_alarm;        <span class="comment">// true if CO above threshold</span>
 } <span class="type">EnvData_t</span>;
 
@@ -823,14 +860,17 @@
 {
     <span class="comment">// Initialize drivers</span>
     I2C_Handle i2c = <span class="func">I2C_open</span>(Board_I2C0, <span class="number">NULL</span>);
-    ADC_Handle adc = <span class="func">ADC_open</span>(Board_ADC_CH2, <span class="number">NULL</span>);
+    ADC_Handle adc_co  = <span class="func">ADC_open</span>(Board_ADC_CH2, <span class="number">NULL</span>);
+    ADC_Handle adc_mic = <span class="func">ADC_open</span>(Board_ADC_CH3, <span class="number">NULL</span>);
     <span class="func">GPIO_init</span>();
 
     <span class="comment">// Initialize sensors</span>
     <span class="func">BME280_init</span>(i2c);
     <span class="func">SGP30_init</span>(i2c);
     <span class="func">BH1750_init</span>(i2c);
-    <span class="func">MQ7_init</span>(adc);
+    <span class="func">BMV080_init</span>(i2c);
+    <span class="func">MQ7_init</span>(adc_co);
+    <span class="func">MIC_init</span>(adc_mic);
     <span class="func">COAlarm_init</span>(<span class="define">CO_ALARM_PPM</span>, <span class="define">CO_CLEAR_PPM</span>);
 
     <span class="comment">// Connect to Wi-Fi &amp; MQTT broker</span>
@@ -845,13 +885,15 @@
                     &amp;data.humidity, &amp;data.pressure);
         <span class="func">SGP30_read</span>(i2c, &amp;data.eco2, &amp;data.tvoc);
         <span class="func">BH1750_read</span>(i2c, &amp;data.lux);
-        data.co_ppm = <span class="func">MQ7_readPPM</span>(adc);
+        <span class="func">BMV080_read</span>(i2c, &amp;data.pm1, &amp;data.pm25, &amp;data.pm10);
+        data.co_ppm = <span class="func">MQ7_readPPM</span>(adc_co);
+        data.noise_db = <span class="func">MIC_readDB</span>(adc_mic);
 
         <span class="comment">// --- CO safety check (with hysteresis) ---</span>
         data.co_alarm = <span class="func">COAlarm_check</span>(data.co_ppm);
 
         <span class="comment">// --- Build JSON payload ---</span>
-        <span class="type">char</span> payload[<span class="number">256</span>];
+        <span class="type">char</span> payload[<span class="number">512</span>];
         <span class="func">snprintf</span>(payload, <span class="keyword">sizeof</span>(payload),
             <span class="string">"{"</span>
             <span class="string">"\"temp\":%.1f,"</span>
@@ -861,11 +903,17 @@
             <span class="string">"\"tvoc\":%u,"</span>
             <span class="string">"\"co_ppm\":%.1f,"</span>
             <span class="string">"\"lux\":%u,"</span>
+            <span class="string">"\"pm1\":%.1f,"</span>
+            <span class="string">"\"pm25\":%.1f,"</span>
+            <span class="string">"\"pm10\":%.1f,"</span>
+            <span class="string">"\"noise_db\":%.1f,"</span>
             <span class="string">"\"co_alert\":%s"</span>
             <span class="string">"}"</span>,
             data.temperature, data.humidity,
             data.pressure, data.eco2, data.tvoc,
             data.co_ppm, data.lux,
+            data.pm1, data.pm25, data.pm10,
+            data.noise_db,
             data.co_alarm ? <span class="string">"true"</span> : <span class="string">"false"</span>);
 
         <span class="comment">// --- Publish ---</span>
@@ -1223,7 +1271,7 @@
     <div class="arch-card">
       <div class="icon">🌀</div>
       <h4>Ventilation Grilles</h4>
-      <p>Louvered slits on the lid above the sensor bay allow natural airflow to the BME280, SGP30, and MQ-7.</p>
+      <p>Louvered slits on the lid above the sensor bay allow natural airflow to the BME280, SGP30, BMV080, and MQ-7.</p>
     </div>
     <div class="arch-card">
       <div class="icon">🔗</div>
@@ -1424,7 +1472,7 @@
       <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
       <div class="flow-content">
         <h4>1 · Install Heat-Set Inserts</h4>
-        <p>Using a soldering iron at ~220°C with a tapered tip, press 10 brass M2.5 inserts into the standoff posts on the base: 4 for the LaunchPad, 2 each for BME280/SGP30/BH1750. The MQ-7 mounts on the two tall (8mm) posts.</p>
+        <p>Using a soldering iron at ~220°C with a tapered tip, press brass M2.5 inserts into the standoff posts on the base: 4 for the LaunchPad, 2 each for BME280/SGP30/BH1750/BMV080. The MQ-7 mounts on the two tall (8mm) posts. The MEMS mic and its breakout board can be mounted with adhesive or a small standoff near the ventilation grille.</p>
       </div>
     </div>
     <div class="flow-step">
@@ -1438,7 +1486,7 @@
       <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
       <div class="flow-content">
         <h4>3 · Mount Sensors</h4>
-        <p>Screw the BME280, SGP30, and BH1750 breakouts onto their standoffs in the sensor bay. Mount the MQ-7 module on the tall standoffs — ensure at least 8mm clearance between the heater can and the base floor.</p>
+        <p>Screw the BME280, SGP30, BH1750, and BMV080 breakouts onto their standoffs in the sensor bay. Mount the MQ-7 module on the tall standoffs — ensure at least 8mm clearance between the heater can and the base floor. Attach the MEMS microphone breakout near the ventilation grille.</p>
       </div>
     </div>
     <div class="flow-step">
